@@ -7,10 +7,14 @@ from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from states import LearningFSM
 from utils import send_message_to_admin
+from db import ExerciseManager, UserProgressManager
 
 
 
 user_router: Router = Router()
+# Создаем менеджеров базы данных
+exercise_manager = ExerciseManager('english_bot.db')
+user_progress_manager = UserProgressManager('english_bot.db')
 
 
 @user_router.message(Command(commands=["start"]), StateFilter(default_state))
