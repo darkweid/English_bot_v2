@@ -1,10 +1,16 @@
-from .database import ExerciseManager, UserProgressManager
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import text
+import asyncio
 
-def init_db(db_path='english_bot.db'):
-    exercise_manager = ExerciseManager(db_path)
-    user_progress_manager = UserProgressManager(db_path)
+DATABASE_URL = "sqlite+aiosqlite:///./english_bot.db"
 
-    exercise_manager.init_tables()
-    user_progress_manager.init_tables()
+engine = create_async_engine(DATABASE_URL, echo=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
+Base = declarative_base()
 
-    return exercise_manager, user_progress_manager
+
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
