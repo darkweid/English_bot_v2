@@ -35,7 +35,7 @@ async def main():
 
         storage: RedisStorage = RedisStorage(redis=redis)
 
-        init_db()
+        await init_db()
 
         bot: bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
         dp: Dispatcher = Dispatcher(storage=storage)
