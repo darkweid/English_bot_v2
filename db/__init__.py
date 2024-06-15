@@ -1,2 +1,2 @@
-from .database import DatabaseManager, ExerciseManager, UserProgressManager
+from .managers import DatabaseManager, ExerciseManager, UserProgressManager, UserManager
 from .init import init_db
