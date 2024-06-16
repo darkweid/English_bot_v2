@@ -16,10 +16,9 @@ config: Config = load_config()
 BOT_TOKEN: str = config.tg_bot.token
 ADMINS: list = config.tg_bot.admin_ids
 
-
-async def send_message_to_admin(bot: Bot, text=''):
-    for admin in ADMINS:
-        await bot.send_message(admin, text=text)
+exercise_manager = ExerciseManager()
+user_progress_manager = UserProgressManager()
+user_manager = UserManager()
 
 
 async def main():
@@ -36,6 +35,9 @@ async def main():
         storage: RedisStorage = RedisStorage(redis=redis)
 
         await init_db()
+        await exercise_manager.init_tables()
+        await user_progress_manager.init_tables()
+        await user_manager.init_tables()
 
         bot: bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
         dp: Dispatcher = Dispatcher(storage=storage)
