@@ -46,14 +46,14 @@ async def main():
         dp.include_router(user_router)
         await set_main_menu(bot)
         await bot.delete_webhook(drop_pending_updates=True)
-        await send_message_to_admin(bot, text='Бот запущен')
+        await send_message_to_admin(bot, text='🟢 Бот запущен 🟢')
         await dp.start_polling(bot, )
     except Exception as e:
         logger.exception("Ошибка: %s", str(e))
 
     finally:
         logger.info('Бот был остановлен.')
-        await send_message_to_admin(bot, text='Бот остановлен')
+        await send_message_to_admin(bot, text='🟥 Бот остановлен 🟥')
 
 
 if __name__ == "__main__":
