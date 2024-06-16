@@ -1,5 +1,7 @@
 from aiogram.filters.state import State, StatesGroup
 
+class TestFSM(StatesGroup):
+    test = State()
 
 class LearningFSM(StatesGroup):
     grammar_training = State()  # Пользователь проходит тренажер по грамматике
