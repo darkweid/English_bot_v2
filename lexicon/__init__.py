@@ -1,1 +1,1 @@
-from .lexicon_ru import LEXICON_RU
+from .lexicon_ru import ButtonEnum, MessagesEnum
