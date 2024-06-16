@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Time
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+import datetime
+
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, Time
+# from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
 
@@ -10,7 +12,6 @@ class GrammarExercise(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     russian = Column(String, nullable=False)
     english = Column(String, nullable=False)
-    level = Column(Integer, nullable=False)
 
 
 class IrregularVerb(Base):
@@ -18,7 +19,7 @@ class IrregularVerb(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     russian = Column(String, nullable=False)
     english = Column(String, nullable=False)
-    level = Column(Integer, nullable=False)
+
 
 
 class NewWord(Base):
@@ -34,6 +35,7 @@ class UserProgress(Base):
     user_id = Column(Integer, primary_key=True)
     exercise_type = Column(String, primary_key=True)
     exercise_id = Column(Integer, primary_key=True)
+    date = Column(Date, nullable=False)
 
 
 class User(Base):
@@ -45,3 +47,4 @@ class User(Base):
     tg_login = Column(String)
     grammar_current_level = Column(Integer)
     reminder_time = Column(Time)
+    time_zone = Column(String)
