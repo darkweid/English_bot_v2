@@ -1,4 +1,4 @@
-import asyncio, logging  # , sqlite_db
+import asyncio, logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -9,7 +9,7 @@ from handlers.user_handlers import user_router
 from handlers.admin_handlers import admin_router
 from keyboards.set_menu import set_main_menu
 from utils import send_message_to_admin
-from db import init_db
+from db import init_db, ExerciseManager, UserManager, UserProgressManager
 
 logger = logging.getLogger(__name__)
 config: Config = load_config()
