@@ -22,3 +22,7 @@ def keyboard_builder(width: int, *args: list[ButtonEnum], **kwargs: dict[str, Bu
 
     kb_builder.row(*buttons, width=width)
     return kb_builder.as_markup()
+
+
+main_menu_keyboard: InlineKeyboardMarkup = keyboard_builder(1, ButtonEnum.GRAMMAR_TRAINING, ButtonEnum.IRREGULAR_VERBS,
+                                                            ButtonEnum.NEW_WORDS)
