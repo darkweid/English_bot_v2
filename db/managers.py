@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import func
 from db.models import Base, GrammarExercise, IrregularVerb, NewWord, UserProgress, User
 from db.init import engine
 from datetime import datetime
@@ -21,22 +22,32 @@ class ExerciseManager(DatabaseManager):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-    async def add_grammar_exercise(self, russian, english, level):
+    async def add_grammar_exercise(self, section, russian, english):
         async with self.db as session:
             async with session.begin():
-                exercise = GrammarExercise(russian=russian, english=english, level=level)
+                # Найти максимальный ID для данного раздела
+                max_id = await session.execute(select(func.max(GrammarExercise.id)).filter_by(section=section))
+                max_id = max_id.scalar() or 0
+                next_id = max_id + 1
+
+                exercise = GrammarExercise(section=section, id=next_id, russian=russian, english=english)
                 session.add(exercise)
 
-    async def add_irregular_verb(self, russian, english, level):
+    async def add_irregular_verb(self, russian, english):
         async with self.db as session:
             async with session.begin():
-                verb = IrregularVerb(russian=russian, english=english, level=level)
+                verb = IrregularVerb(russian=russian, english=english)
                 session.add(verb)
 
-    async def add_new_word(self, russian, english, level):
+    async def add_new_word(self, section, russian, english):
         async with self.db as session:
             async with session.begin():
-                word = NewWord(russian=russian, english=english, level=level)
+                # Найти максимальный ID для данного раздела
+                max_id = await session.execute(select(func.max(NewWord.id)).filter_by(section=section))
+                max_id = max_id.scalar() or 0
+                next_id = max_id + 1
+
+                word = NewWord(section=section, id=next_id, russian=russian, english=english)
                 session.add(word)
 
     async def get_grammar_exercises(self):
@@ -60,10 +71,11 @@ class UserProgressManager(DatabaseManager):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-    async def mark_exercise_completed(self, user_id, exercise_type, exercise_id):
+    async def mark_exercise_completed(self, user_id, exercise_type, exercise_section, exercise_id):
         async with self.db as session:
             async with session.begin():
-                progress = UserProgress(user_id=user_id, exercise_type=exercise_type, exercise_id=exercise_id)
+                progress = UserProgress(user_id=user_id, exercise_type=exercise_type, exercise_section=exercise_section,
+                                        exercise_id=exercise_id, date=datetime.utcnow().date())
                 session.add(progress)
 
     async def get_completed_exercises(self, user_id, exercise_type):
@@ -93,7 +105,6 @@ class UserManager(DatabaseManager):
                     user_id=user_id,
                     full_name=full_name,
                     tg_login=tg_login,
-                    grammar_current_level=1,
                     reminder_time=None,
                     time_zone=None
                 )
