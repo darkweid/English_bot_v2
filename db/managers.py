@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker
-from db.models import GrammarExercise, IrregularVerb, NewWord, UserProgress, User
+from db.models import Base, GrammarExercise, IrregularVerb, NewWord, UserProgress, User
 from db.init import engine
 from datetime import datetime
 
@@ -84,18 +84,18 @@ class UserManager(DatabaseManager):
                 # Проверка на существование пользователя
                 result = await session.execute(select(User).filter_by(user_id=user_id))
                 existing_user = result.scalar_one_or_none()
-
                 if existing_user:
-                    return f"User with user_id {user_id} already exists."
+                    print(f"User with user_id {user_id}:{full_name} already exists.")
+                    return None
 
-                # Создание нового пользователя
                 user = User(
-                    registration_date=datetime.utcnow,
+                    registration_date=datetime.utcnow(),
                     user_id=user_id,
                     full_name=full_name,
                     tg_login=tg_login,
                     grammar_current_level=1,
-                    reminder_time=None  # Изначально NULL
+                    reminder_time=None,
+                    time_zone=None
                 )
                 session.add(user)
                 await session.commit()
