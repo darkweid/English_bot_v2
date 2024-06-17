@@ -1,5 +1,5 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+# from sqlalchemy.orm import sessionmaker
 from .models import Base
 import logging
 
@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 DATABASE_URL = "sqlite+aiosqlite:///./english_bot.db"
 
 engine = create_async_engine(DATABASE_URL, echo=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
+SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 
 
 async def init_db():
