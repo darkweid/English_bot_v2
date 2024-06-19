@@ -4,8 +4,9 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, C
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from lexicon import *
 
-ButtonEnumType = Union[
-    BasicButtons, MainMenuButtons, AdminMenuButtons, TestingSections, TestingSubsections, MessageTexts]
+ButtonEnumType = Union[BasicButtons, MainMenuButtons, AdminMenuButtons, TestingSections, MessageTexts, TensesSections,
+ConstructionsSections, PhrasesAndWordsSections, PrepositionsSections, ModalVerbsSections,
+ConditionalsSections]
 
 
 def keyboard_builder(width: int, *args: ButtonEnumType, args_go_first: bool = True,
@@ -40,7 +41,6 @@ def keyboard_builder(width: int, *args: ButtonEnumType, args_go_first: bool = Tr
 
 
 main_menu_keyboard: InlineKeyboardMarkup = keyboard_builder(1, *[button.value for button in MainMenuButtons])
-choose_section_testing: InlineKeyboardMarkup = keyboard_builder(1, *[button.value for button in
-                                                                     TestingSections])
-choose_subsection_testing: InlineKeyboardMarkup = keyboard_builder(1, *[button.value for button in
-                                                                        TestingSubsections])
+choose_section_testing_keyboard: InlineKeyboardMarkup = keyboard_builder(1, *[button.value for button in
+                                                                              TestingSections], BasicButtons.BACK,
+                                                                         BasicButtons.MAIN_MENU)
