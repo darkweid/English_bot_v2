@@ -1,7 +1,7 @@
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.future import select
 from sqlalchemy import func
-from db.models import Base, GrammarExercise, IrregularVerb, NewWord, UserProgress, User
+from db.models import Base, TestingExercise, IrregularVerb, NewWord, UserProgress, User
 from db.init import engine
 from datetime import datetime
 
@@ -21,15 +21,16 @@ class ExerciseManager(DatabaseManager):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-    async def add_grammar_exercise(self, section, russian, english):
+    async def add_testing_exercise(self, section, subsection, test, answer):
         async with self.db as session:
             async with session.begin():
                 # Найти максимальный ID для данного раздела
-                max_id = await session.execute(select(func.max(GrammarExercise.id)).filter_by(section=section))
+                max_id = await session.execute(
+                    select(func.max(TestingExercise.id)).filter_by(section=section, subsection=subsection))
                 max_id = max_id.scalar() or 0
                 next_id = max_id + 1
 
-                exercise = GrammarExercise(section=section, id=next_id, russian=russian, english=english)
+                exercise = TestingExercise(section=section, subsection=subsection, id=next_id, test=test, answer=answer)
                 session.add(exercise)
 
     async def add_irregular_verb(self, russian, english):
@@ -49,13 +50,13 @@ class ExerciseManager(DatabaseManager):
                 word = NewWord(section=section, id=next_id, russian=russian, english=english)
                 session.add(word)
 
-    async def get_grammar_exercises(self, section: str):
+    async def get_testing_exercises(self, subsection: str):
         async with self.db as session:
-            res = await session.execute(select(GrammarExercise).filter_by(section=section).order_by(GrammarExercise.id))
+            res = await session.execute(select(TestingExercise).filter_by(subsection=subsection).order_by(TestingExercise.id))
             exercises = res.scalars().all()
             result = ''
             for exercise in exercises:
-                result += f'{exercise.id}) {exercise.russian}: {exercise.english}\n\n'
+                result += f'{exercise.id}) {exercise.test}. Ответ: {exercise.answer}\n\n'
             return result
 
     async def get_irregular_verbs(self):
@@ -74,17 +75,35 @@ class UserProgressManager(DatabaseManager):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-    async def mark_exercise_completed(self, user_id, exercise_type, exercise_section, exercise_id):
+    async def mark_exercise_completed(self, user_id, exercise_type, exercise_section, exercise_id, success):
         async with self.db as session:
             async with session.begin():
-                progress = UserProgress(user_id=user_id, exercise_type=exercise_type, exercise_section=exercise_section,
-                                        exercise_id=exercise_id, date=datetime.utcnow().date())
+                progress = await session.get(
+                    UserProgress, (user_id, exercise_type, exercise_section, exercise_id)
+                )
+                if progress:
+                    if not success:
+                        progress.attempts += 1
+                else:
+                    progress = UserProgress(
+                        user_id=user_id,
+                        exercise_type=exercise_type,
+                        exercise_section=exercise_section,
+                        exercise_id=exercise_id,
+                        attempts=1,
+                        date=datetime.utcnow().date(),
+
+                    )
                 session.add(progress)
 
     async def get_completed_exercises(self, user_id, exercise_type):
         async with self.db as session:
-            result = await session.execute(select(UserProgress).where(UserProgress.user_id == user_id,
-                                                                      UserProgress.exercise_type == exercise_type))
+            result = await session.execute(
+                select(UserProgress).where(
+                    UserProgress.user_id == user_id,
+                    UserProgress.exercise_type == exercise_type
+                )
+            )
             return [row.exercise_id for row in result.scalars().all()]
 
 
@@ -113,4 +132,5 @@ class UserManager(DatabaseManager):
                 )
                 session.add(user)
                 await session.commit()
-                return f"User {full_name} added successfully."
+                print(f"User {full_name} added successfully.")
+                return None
