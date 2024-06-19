@@ -1,28 +1,46 @@
+from typing import Union
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, BotCommand, URLInputFile
 # from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, ReplyKeyboardRemove, ContentType
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from lexicon import ButtonEnum
+from lexicon import *
+
+ButtonEnumType = Union[
+    BasicButtons, MainMenuButtons, AdminMenuButtons, TestingSections, TestingSubsections, MessageTexts]
 
 
-def keyboard_builder(width: int, *args: list[ButtonEnum], **kwargs: dict[str, ButtonEnum]) -> InlineKeyboardMarkup:
+def keyboard_builder(width: int, *args: ButtonEnumType, args_go_first: bool = True,
+                     **kwargs: dict[str, ButtonEnumType]) -> InlineKeyboardMarkup:
     kb_builder: InlineKeyboardBuilder = InlineKeyboardBuilder()
     buttons: list[InlineKeyboardButton] = []
+    if args_go_first:
+        if args:
+            for button in args:
+                buttons.append(InlineKeyboardButton(
+                    text=button,
+                    callback_data=button))
 
-    if args:
-        for button in args:
-            buttons.append(InlineKeyboardButton(
-                text=button,
-                callback_data=button))
-
-    if kwargs:
-        for callback, button in kwargs.items():
-            buttons.append(InlineKeyboardButton(
-                text=button,
-                callback_data=callback))
-
+        if kwargs:
+            for callback, button in kwargs.items():
+                buttons.append(InlineKeyboardButton(
+                    text=button,
+                    callback_data=callback))
+    else:
+        if kwargs:
+            for callback, button in kwargs.items():
+                buttons.append(InlineKeyboardButton(
+                    text=button,
+                    callback_data=callback))
+        if args:
+            for button in args:
+                buttons.append(InlineKeyboardButton(
+                    text=button,
+                    callback_data=button))
     kb_builder.row(*buttons, width=width)
     return kb_builder.as_markup()
 
 
-main_menu_keyboard: InlineKeyboardMarkup = keyboard_builder(1, ButtonEnum.GRAMMAR_TRAINING, ButtonEnum.IRREGULAR_VERBS,
-                                                            ButtonEnum.NEW_WORDS)
+main_menu_keyboard: InlineKeyboardMarkup = keyboard_builder(1, *[button.value for button in MainMenuButtons])
+choose_section_testing: InlineKeyboardMarkup = keyboard_builder(1, *[button.value for button in
+                                                                     TestingSections])
+choose_subsection_testing: InlineKeyboardMarkup = keyboard_builder(1, *[button.value for button in
+                                                                        TestingSubsections])
