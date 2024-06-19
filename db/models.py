@@ -1,15 +1,16 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Time  # ,ForeignKey
-from sqlalchemy.orm import declarative_base  # ,relationship
+from sqlalchemy import Column, Integer, String, Date, DateTime, Time, ForeignKey
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
 
-class GrammarExercise(Base):
-    __tablename__ = 'grammar_exercises'
+class TestingExercise(Base):
+    __tablename__ = 'testing_exercises'
     section = Column(String, primary_key=True, nullable=False)
+    subsection = Column(String, primary_key=True, nullable=False)
     id = Column(Integer, primary_key=True, nullable=False)
-    russian = Column(String, nullable=False)
-    english = Column(String, nullable=False)
+    test = Column(String, nullable=False)
+    answer = Column(String, nullable=False)
 
 
 class IrregularVerb(Base):
@@ -33,6 +34,7 @@ class UserProgress(Base):
     exercise_type = Column(String, primary_key=True, nullable=False)
     exercise_section = Column(Integer, primary_key=True, nullable=True)
     exercise_id = Column(Integer, primary_key=True, nullable=False)
+    attempts = Column(Integer, default=1)
     date = Column(Date, nullable=False)
 
 
