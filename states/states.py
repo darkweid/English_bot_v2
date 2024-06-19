@@ -4,9 +4,11 @@ from aiogram.filters.state import State, StatesGroup
 class LearningFSM(StatesGroup):
     default = State()
     choose_type_of_exercise = State()
-    testing = State()  # Пользователь проходит тренажер по грамматике
-    testing_choosing_section = State()  # Пользователь выбирает раздел в тренажере по грамматике
-    testing_choosed_section = State()  # Пользователь выбрал раздел в тренажере по грамматике
+    testing = State()  # Пользователь проходит тестирование
+    testing_choosing_section = State()  # Пользователь выбирает раздел в тестах
+    testing_choosing_subsection = State()  # Пользователь выбирает подраздел в тестах
+    testing_choosed_subsection = State()    # Пользователь выбрал подраздел в тестах
+    testing_in_process = State()
 
     verbs_learning = State()  # Пользователь изучает неправильные глаголы
     new_words_learning = State()  # Пользователь изучает новые слова
