@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class MessagesEnum(Enum):
+class MessageTexts(Enum):
     WELCOME_NEW_USER = f"""Помогаю людям изучать английский.
 У меня три раздела:
 – тренажер по грамматике
@@ -24,22 +24,30 @@ class MessagesEnum(Enum):
     ERROR = 'Что-то пошло не так\nПерезапусти бота, нажми команду /start'
 
 
-class ButtonEnum(Enum):
+class MainMenuButtons(Enum):
+    TESTING = 'Тесты'
+    IRREGULAR_VERBS = 'Изучение неправильных глаголов'
+    NEW_WORDS = 'Изучение новых слов'
+    TRANSLATING_SENTENCES = 'Предложения для перевода'
+
+
+class BasicButtons(Enum):
     YES = '✅ <b>ДА!</b>'
     NO = '❌ <b>НЕТ</b>'
     READY = 'Готов!'
     SET = 'Установить'
     MAIN_MENU = 'Главное меню'
     CANCEL = 'Отменить'
-    GRAMMAR_TRAINING = 'Тренажер по грамматике'
-    IRREGULAR_VERBS = 'Изучение неправильных глаголов'
-    NEW_WORDS = 'Изучение новых слов'
     RULES = '🙋‍♀️ Посмотреть правила 🙋'
     SEE_ANSWER = '🔎 Показать ответ 🔍'
     REMINDER_TIME = 'Установить время напоминаний'
 
 
-class GrammarTrainingButtons(Enum):
+class TestingSections(Enum):
+    pass
+
+
+class TestingSubsections(Enum):
     PRESENT_SIMPLE_VS_PRESENT_CONTINIOUS = 'Present Simple vs Present Continuous'
     PAST_SIMPLE_VS_PRESENT_PERFECT = 'Past Simple vs Present Perfect'
     THERE_IS_THERE_ARE = 'There is / There are'
@@ -50,13 +58,21 @@ class GrammarTrainingButtons(Enum):
 
 
 class AdminMenuButtons(Enum):
+    YES = 'Да'
+    NO = 'Нет'
+    COMMIT = 'Отправить'
     EXERCISES = 'Тренажеры'
+    CLOSE = 'Закрыть'
+    MAIN_MENU = '↖️Главное меню'
+    EXIT = '⬅️Выход'
 
-    GRAMMAR = 'Тренажер по грамматике'
-    SET_SECTION_GRAMMAR = 'Выбрать раздел'
-    SEE_EXERCISES_GRAMMAR = 'Посмотреть предложения'
-    ADD_EXERCISE_GRAMMAR = 'Добавить предложение'
-    DEL_EXERCISE_GRAMMAR = 'Удалить предложение'
+    TESTING = 'Тесты'
+    SET_SECTION_TESTING = 'Выбрать раздел'
+    SET_SUBSECTION_TESTING = 'Выбрать тему'
+    SEE_EXERCISES_TESTING = 'Посмотреть предложения'
+    ADD_EXERCISE_TESTING = 'Добавить предложение'
+    EDIT_EXERCISE_TESTING = 'Редактировать предложение'
+    DEL_EXERCISE_TESTING = 'Удалить предложение'
 
     IRR_VERBS = 'Неправильные глаголы'
     SEE_VERBS = 'Посмотреть глаголы'
@@ -76,6 +92,3 @@ class AdminMenuButtons(Enum):
     USERS = 'Пользователи'
     SEE_USERS = 'Посмотреть пользователей'
     DEL_USER = 'Удалить пользователя'
-
-    BACK = '↖️Назад'
-    EXIT = '⬅️Выход'
