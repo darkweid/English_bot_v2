@@ -1,1 +1,1 @@
-from .lexicon_ru import ButtonEnum, MessagesEnum, GrammarTrainingButtons, AdminMenuButtons
+from .lexicon_ru import BasicButtons, MainMenuButtons, AdminMenuButtons, TestingSections, TestingSubsections, MessageTexts
