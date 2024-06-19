@@ -1,12 +1,11 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.future import select
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
 from db.models import Base, GrammarExercise, IrregularVerb, NewWord, UserProgress, User
 from db.init import engine
 from datetime import datetime
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
+SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 class DatabaseManager:
@@ -50,10 +49,14 @@ class ExerciseManager(DatabaseManager):
                 word = NewWord(section=section, id=next_id, russian=russian, english=english)
                 session.add(word)
 
-    async def get_grammar_exercises(self):
+    async def get_grammar_exercises(self, section: str):
         async with self.db as session:
-            result = await session.execute(select(GrammarExercise))
-            return result.scalars().all()
+            res = await session.execute(select(GrammarExercise).filter_by(section=section).order_by(GrammarExercise.id))
+            exercises = res.scalars().all()
+            result = ''
+            for exercise in exercises:
+                result += f'{exercise.id}) {exercise.russian}: {exercise.english}\n\n'
+            return result
 
     async def get_irregular_verbs(self):
         async with self.db as session:
