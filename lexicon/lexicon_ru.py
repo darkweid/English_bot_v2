@@ -15,13 +15,17 @@ class MessageTexts(Enum):
     GIVE_A_HINT = '<u>Попробуй ещё раз</u> или попроси меня показать ответ 😉'
     LETS_CONTINUE = 'Продолжаем 😊'
     LEARN_FROM_MISTAKES = 'На ошибках учатся, так что продолжаем 😊'
-    GRAMMAR_TRAINING_HELLO = 'Отличный выбор!\nБудем улучшать твою <b>грамматику</b>\nЕсли нужно - жми кнопку ниже и посмотри правила'
+    TESTING_HELLO = 'Хороший выбор!\nБудем улучшать твою <b>грамматику</b>\nЕсли нужно - жми кнопку ниже и посмотри правила'
     INFO_RULES = f"""\n🟢Весь прогресс сохраняется в памяти бота
 \n🔵Регистр введенных предложений/слов не имеет значения.
 \n❌Не используй сокращения «don't», «it's»
 ✅Используй полные формы «do not», «it is»
 \n🟠В любой непонятной ситуации нажимай команду /start и бот перезапустится 😊"""
-    ERROR = 'Что-то пошло не так\nПерезапусти бота, нажми команду /start'
+    ERROR = 'Что-то пошло не так😐\nПерезапусти бота, нажми команду /start'
+    TEST_RULES = """Правила простые:\nЯ пишу предложение на английском с пробелом, а ты должен мне написать, что нужно добавить в этот пробел\n\nЕсли ответы не совпадут:
+⚪ Можешь попробовать написать ответ ещё раз(количество попыток не ограничено)\n⚪ Можешь поcмотреть ответ, нажав на кнопку «Покажи ответ»"""
+    CHOOSE_SECTION =         'Выбери раздел для прохождения теста:'
+    CHOOSE_SUBSECTION_TEST = 'Выбери тему для прохождения теста:'
 
 
 class MainMenuButtons(Enum):
@@ -35,26 +39,89 @@ class BasicButtons(Enum):
     YES = '✅ <b>ДА!</b>'
     NO = '❌ <b>НЕТ</b>'
     READY = 'Готов!'
+    BACK = '⬅️Назад'
     SET = 'Установить'
-    MAIN_MENU = 'Главное меню'
+    MAIN_MENU = '🏠Главное меню'
     CANCEL = 'Отменить'
+    CLOSE = 'Закрыть'
     RULES = '🙋‍♀️ Посмотреть правила 🙋'
     SEE_ANSWER = '🔎 Показать ответ 🔍'
     REMINDER_TIME = 'Установить время напоминаний'
 
 
 class TestingSections(Enum):
-    pass
+    TENSES = 'Tenses'
+    CONSTRUCTIONS = 'Constructions'
+    PHRASES_AND_WORDS = 'Phrases & words'
+    PREPOSITIONS = 'Prepositions'
+    MODAL_VERBS = 'Modal verbs'
+    CONDITIONALS = 'Conditionals'
 
 
-class TestingSubsections(Enum):
-    PRESENT_SIMPLE_VS_PRESENT_CONTINIOUS = 'Present Simple vs Present Continuous'
-    PAST_SIMPLE_VS_PRESENT_PERFECT = 'Past Simple vs Present Perfect'
-    THERE_IS_THERE_ARE = 'There is / There are'
-    COUNT_AND_UNCOUNT_NOUNS = 'Countable and Uncountable Nouns'
-    MODAL_VERBS = 'Modal Verbs(can, could, may, might, must, should)'
-    FUTURE_FORMS = 'Future Forms(will, going to)'
-    COMPARATIVES_SUPERLATIVES = 'Comparatives and Superlatives'
+class TensesSections(Enum):
+    PRESENT_SIMPLE = 'Present Simple'
+    PRESENT_CONTINUOUS = 'Present Continuous'
+    PS_VS_PC = 'Present Simple VS Present Continuous'
+    PAST_SIMPLE = 'Past Simple'
+    PAST_SIMPLE_WITH_IRR_VERBS = 'Past Simple with irregular verbs'
+    PRESENT_PERFECT_SIMPLE = 'Present Perfect Simple'
+    PAST_SIMPLE_VS_PRESENT_PERFECT_SIMPLE = 'Past Simple VS Present Perfect Simple'
+    PRESENT_SIMPLE_VS_PRESENT_PERFECT_SIMPLE = 'Present Simple VS Present Perfect Simple'
+    PRESENT_PERFECT_SIMPLE_VS_PRESENT_PERFECT_CONT = 'Present Perfect Simple VS Present Perfect Continuous'
+
+
+class ConstructionsSections(Enum):
+    TO_BE_GOING_TO = 'to be going to'
+    WILL_VS_BE_GOING_TO = 'will VS be going to'
+    WAS_GOING_TO = 'was going to'
+    THERE_ARE_THERE_IS = 'there are / there is'
+    IT_TAKE = 'it take'
+    USED_TO = 'used to'
+    USED_TO_VS_PAST_SIMPLE = 'used to VS Past Simple'
+    TAG_QUESTIONS = 'tag questions'
+
+
+class PhrasesAndWordsSections(Enum):
+    HOW_MUCH_HOW_MANY = 'how much how many'
+    LITTLE_VS_FEW = 'little VS few'
+    SOME_VS_ANY = 'some VS any'
+    ENOUGH_VS_TOO = 'enough VS too'
+    SO_VS_SUCH = 'so VS such'
+    BECAUSE_VS_SO = 'because VS so'
+    SO_VS_NEITHER = 'so VS neither'
+    ARTICLES = 'articles'
+
+
+class PrepositionsSections(Enum):
+    PREPOSITIONS_OF_THE_TIME = 'prepositions of the time'
+    PREPOSITIONS_OF_PLACE = 'prepositions of place'
+    PREPOSITIONS_OF_AGENT_OR_INSTRUMENT = 'prepositions of agent or instrument'
+    PREPOSITIONS_OF_CAUSE_OR_REASON = 'Prepositions of Cause or Reason:'
+
+
+class ModalVerbsSections(Enum):
+    CAN_VS_COULD = 'can VS could'
+    CANT_VS_COULDNT = 'can’t VS couldn’t'
+    MUST_VS_SHOULD = 'must VS should'
+    MUST_VS_SHOULD_VS_HAVE_TO = 'must VS should VS have to'
+    CAN_VS_MAY = 'can VS may'
+
+
+class ConditionalsSections(Enum):
+    ZERO_COND = 'zero cond'
+    FIRST_COND = 'first cond'
+    SECOND_COND = 'second cond'
+    THIRD_COND = 'third cond'
+    MIXED = 'mixed'
+
+testing_section_mapping = {
+        TestingSections.TENSES.value: TensesSections,
+        TestingSections.CONSTRUCTIONS.value: ConstructionsSections,
+        TestingSections.PHRASES_AND_WORDS.value: PhrasesAndWordsSections,
+        TestingSections.PREPOSITIONS.value: PrepositionsSections,
+        TestingSections.MODAL_VERBS.value: ModalVerbsSections,
+        TestingSections.CONDITIONALS.value: ConditionalsSections,
+    }
 
 
 class AdminMenuButtons(Enum):
