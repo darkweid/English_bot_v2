@@ -47,6 +47,8 @@ async def admin_command(callback: CallbackQuery, state: FSMContext):
 async def admin_exit(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await callback.answer('До скорых встреч 👋')
+    await update_state_data(state, admin_section=None, admin_subsection=None, index_testing_edit=None,
+                            index_testing_delete=None)
     await state.set_state(LearningFSM.default)
 
 
@@ -98,6 +100,7 @@ async def admin_choosing_subsection_testing(callback: CallbackQuery, state: FSMC
         f'Выбран раздел\n «{admin_section} - {admin_subsection}»\n\nЧто нужно сделать?',
         reply_markup=keyboard_builder(1, AdminMenuButtons.SEE_EXERCISES_TESTING,
                                       AdminMenuButtons.ADD_EXERCISE_TESTING,
+                                      AdminMenuButtons.EDIT_EXERCISE_TESTING,
                                       AdminMenuButtons.DEL_EXERCISE_TESTING,
                                       AdminMenuButtons.MAIN_MENU,
                                       AdminMenuButtons.EXIT))
@@ -108,22 +111,28 @@ async def admin_choosing_subsection_testing(callback: CallbackQuery, state: FSMC
 
 @admin_router.callback_query(F.data == AdminMenuButtons.SEE_EXERCISES_TESTING.value)
 @admin_router.callback_query(F.data == AdminMenuButtons.ADD_EXERCISE_TESTING.value)
+@admin_router.callback_query(F.data == AdminMenuButtons.EDIT_EXERCISE_TESTING.value)
 @admin_router.callback_query(F.data == AdminMenuButtons.DEL_EXERCISE_TESTING.value)
 async def admin_testing_management(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    subsection = data.get('admin_subsection')
-    section = data.get('admin_section')
+    subsection, section = data.get('admin_subsection'), data.get('admin_section')
+    exercise_name = f'\"{section} - {subsection}\"'
+
     if section and callback.data == AdminMenuButtons.SEE_EXERCISES_TESTING.value:
         result = await exercise_manager.get_testing_exercises(subsection)
         if result:
-            await send_long_message(callback, f'Вот все предложения из раздела\n\"{section} - {subsection}\":\n{result}',
+            await callback.answer()
+            await send_long_message(callback, f'Вот все предложения из раздела\n{exercise_name}:\n{result}',
                                     reply_markup=keyboard_builder(1, AdminMenuButtons.CLOSE))
         else:
-            await callback.message.edit_text(f'В разделе \n\"{section} - {subsection}\" ещё нет упражнений',
+            await callback.answer()
+            await callback.message.edit_text(f'В разделе \n{exercise_name} ещё нет упражнений',
                                              reply_markup=keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
                                                                            AdminMenuButtons.EXIT))
+
+
     elif callback.data == AdminMenuButtons.ADD_EXERCISE_TESTING.value:
-        await callback.message.edit_text(f"""Введи предложения для добавления в раздел\n\"{section} - {subsection}\"\n
+        await callback.message.edit_text(f"""Введи предложение и ответ к нему для добавления в раздел\n{exercise_name}\n
 В формате: \nEnglish sentence=+=Answer
 \nМожно отправить несколько упражнений, тогда каждое упражнение должно начинаться с новой строки
 и сообщение должно содержать не более 4096 символов(лимит Telegram)""",
@@ -131,34 +140,41 @@ async def admin_testing_management(callback: CallbackQuery, state: FSMContext):
                                                                        AdminMenuButtons.EXIT))
         await state.set_state(AdminFSM.adding_exercise_testing)
 
+    elif callback.data == AdminMenuButtons.EDIT_EXERCISE_TESTING.value:
+        await callback.message.edit_text(f'Введи номер предложения для редактирования в разделе\n{exercise_name}\n',
+                                         reply_markup=keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
+                                                                       AdminMenuButtons.EXIT))
+        await state.set_state(AdminFSM.editing_exercise_testing)
+
+
     elif callback.data == AdminMenuButtons.DEL_EXERCISE_TESTING.value:
-        await callback.message.edit_text(f'Введи номер предложения для удаления из\n\"{section}\"',
+        await callback.message.edit_text(f"""Введи номер предложения для удаления из\n{exercise_name}\n
+Если нужно удалить одно предложение - введи номер предложения, если несколько - введи номера предложений через запятую""",
                                          reply_markup=keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
                                                                        AdminMenuButtons.EXIT))
         await state.set_state(AdminFSM.deleting_exercise_testing)
 
 
-@admin_router.message(StateFilter(AdminFSM.adding_exercise_testing))
+@admin_router.message(StateFilter(AdminFSM.adding_exercise_testing))  # ADD
 async def admin_adding_sentence_grammar(message: Message, state: FSMContext):
     try:
         data = await state.get_data()
-        subsection = data.get('admin_subsection')
-        section = data.get('admin_section')
+        subsection, section = data.get('admin_subsection'), data.get('admin_section')
         sentences = message.text.split('\n')
         count_sentences = len(sentences)
-        print(sentences)
-        print(count_sentences)
         if count_sentences > 1:
             for group_sentences in sentences:
                 test, answer = group_sentences.split('=+=')
-                await exercise_manager.add_testing_exercise(section=section, subsection=subsection, test=test, answer=answer)
+                await exercise_manager.add_testing_exercise(section=section, subsection=subsection, test=test,
+                                                            answer=answer)
             await message.answer(
                 f'✅Успешно добавлено {count_sentences} упражнений, можешь отправить ещё',
                 reply_markup=keyboard_builder(1, AdminMenuButtons.EXIT))
 
         else:
             test, answer = message.text.split('=+=')
-            await exercise_manager.add_testing_exercise(section=section, subsection=subsection, test=test, answer=answer)
+            await exercise_manager.add_testing_exercise(section=section, subsection=subsection, test=test,
+                                                        answer=answer)
 
             await message.answer('✅Упражнение успешно добавлено, можешь отправить ещё и я добавлю',
                                  reply_markup=keyboard_builder(1, AdminMenuButtons.EXIT))
@@ -168,6 +184,66 @@ async def admin_adding_sentence_grammar(message: Message, state: FSMContext):
         await message.answer('❗️Что-то пошло не так, попробуй еще раз\n\nПроверь формат текста',
                              reply_markup=keyboard_builder(1, AdminMenuButtons.EXIT))
         await message.answer(str(e))
+
+
+@admin_router.message(StateFilter(AdminFSM.editing_exercise_testing))  # EDIT
+async def admin_editing_sentence_grammar(message: Message, state: FSMContext):
+    if message.text.isdigit():
+        index = int(message.text)
+        await update_state_data(state, index_testing_edit=index)
+        data = await state.get_data()
+        subsection, section, index_testing_edit = data.get('admin_subsection'), data.get('admin_section'), data.get(
+            'index_testing_edit')
+        exercise_name = f'\"{section} - {subsection}\"'
+        await message.answer(f"""Отлично, будем изменять \nпредложение № {index_testing_edit}\nВ разделе {exercise_name} 
+Введи предложение и ответ к нему в формате: \nEnglish sentence=+=Answer""")
+        await state.set_state(AdminFSM.ready_to_edit_exercise_testing)
+    else:
+        await message.answer('❌Что-то пошло не так, попробуй еще раз',
+                             reply_markup=keyboard_builder(1, AdminMenuButtons.MAIN_MENU, AdminMenuButtons.EXIT))
+
+
+@admin_router.message(StateFilter(AdminFSM.ready_to_edit_exercise_testing))  # EDIT
+async def admin_edit_sentence_grammar(message: Message, state: FSMContext):
+    data = await state.get_data()
+    subsection, section, index_testing_edit = data.get('admin_subsection'), data.get('admin_section'), data.get(
+        'index_testing_edit')
+    try:
+        test, answer = message.text.split('=+=')
+        await exercise_manager.edit_testing_exercise(section=section, subsection=subsection, test=test, answer=answer,
+                                                     index=index_testing_edit)
+        await message.answer('✅Успешно изменено',
+                             reply_markup=keyboard_builder(1, AdminMenuButtons.MAIN_MENU))
+        await state.set_state(AdminFSM.default)
+        await update_state_data(state, admin_section=None, admin_subsection=None, index_testing_edit=None)
+    except Exception as e:
+        await message.answer('❌Что-то пошло не так, попробуй еще раз',
+                             reply_markup=keyboard_builder(1, AdminMenuButtons.EXIT))
+        print('\n\n\n\n', e, '\n\n\n\n')
+
+
+@admin_router.message(StateFilter(AdminFSM.deleting_exercise_testing))  # DELETE
+async def admin_deleting_sentence_grammar(message: Message, state: FSMContext):
+    data = await state.get_data()
+    subsection, section = data.get('admin_subsection'), data.get('admin_section')
+    exercise_name = f'\"{section} - {subsection}\"'
+    indexes = []
+    try:
+        indexes = [int(num) for num in message.text.split(',')]
+    except ValueError:
+        await message.answer('❌Неправильный формат, попробуй еще раз ввести номер предложения',
+                             reply_markup=keyboard_builder(1, AdminMenuButtons.MAIN_MENU, AdminMenuButtons.EXIT))
+
+    if len(indexes) == 1:
+        index = indexes[0]
+        await message.answer(f"""✅Предложение № {index}\n<b>Удалено</b> из раздела \n{exercise_name}""",
+                             reply_markup=keyboard_builder(1, AdminMenuButtons.MAIN_MENU, AdminMenuButtons.EXIT))
+        await exercise_manager.delete_testing_exercise(section=section, subsection=subsection, index=index)
+    elif len(indexes) > 1:
+        await message.answer(f"""✅Предложения № {str(indexes)}\n <b>Удалены</b> из раздела \n{exercise_name}""",
+                             reply_markup=keyboard_builder(1, AdminMenuButtons.MAIN_MENU, AdminMenuButtons.EXIT))
+        for index in indexes:
+            await exercise_manager.delete_testing_exercise(section=section, subsection=subsection, index=index)
 
 
 async def send_long_message(callback, text, max_length=4000, **kwargs):
