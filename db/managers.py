@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.future import select
-from sqlalchemy import func
+from sqlalchemy import func, update, delete
 from db.models import Base, TestingExercise, IrregularVerb, NewWord, UserProgress, User
 from db.init import engine
 from datetime import datetime
@@ -52,7 +52,8 @@ class ExerciseManager(DatabaseManager):
 
     async def get_testing_exercises(self, subsection: str):
         async with self.db as session:
-            res = await session.execute(select(TestingExercise).filter_by(subsection=subsection).order_by(TestingExercise.id))
+            res = await session.execute(
+                select(TestingExercise).filter_by(subsection=subsection).order_by(TestingExercise.id))
             exercises = res.scalars().all()
             result = ''
             for exercise in exercises:
@@ -69,6 +70,21 @@ class ExerciseManager(DatabaseManager):
             result = await session.execute(select(NewWord))
             return result.scalars().all()
 
+    async def edit_testing_exercise(self, section, subsection, test, answer, index):
+        async with self.db as session:
+            async with session.begin():
+                await session.execute(
+                    update(TestingExercise).where(TestingExercise.section == section,
+                                                  TestingExercise.subsection == subsection,
+                                                  TestingExercise.id == index).values(test=test, answer=answer))
+
+    async def delete_testing_exercise(self, section, subsection, index):
+        async with self.db as session:
+            async with session.begin():
+                await session.execute(
+                    delete(TestingExercise).where(TestingExercise.section == section,
+                                                  TestingExercise.subsection == subsection,
+                                                  TestingExercise.id == index))
 
 class UserProgressManager(DatabaseManager):
     async def init_tables(self):
