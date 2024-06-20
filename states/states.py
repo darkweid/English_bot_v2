@@ -23,6 +23,9 @@ class AdminFSM(StatesGroup):
     adding_exercise_testing = State()
     deleting_exercise_testing = State()
     editing_exercise_testing = State()
+    ready_to_edit_exercise_testing = State()
+    ready_to_delete_exercise_testing = State()
+
 
     manage_users = State()  # Управление пользователями
     view_reports = State()  # Просмотр отчетов
