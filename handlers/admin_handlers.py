@@ -35,6 +35,7 @@ async def admin_command(message: Message, state: FSMContext):
                              reply_markup=keyboard_builder(1, AdminMenuButtons.EXERCISES,
                                                            AdminMenuButtons.SEE_ACTIVITY_DAY,
                                                            AdminMenuButtons.SEE_ACTIVITY_WEEK,
+                                                           AdminMenuButtons.SEE_ACTIVITY_MONTH,
                                                            AdminMenuButtons.USERS, AdminMenuButtons.EXIT))
         await state.set_state(AdminFSM.default)
     else:
@@ -47,6 +48,7 @@ async def admin_command(callback: CallbackQuery, state: FSMContext):
                                      reply_markup=keyboard_builder(1, AdminMenuButtons.EXERCISES,
                                                                    AdminMenuButtons.SEE_ACTIVITY_DAY,
                                                                    AdminMenuButtons.SEE_ACTIVITY_WEEK,
+                                                                   AdminMenuButtons.SEE_ACTIVITY_MONTH,
                                                                    AdminMenuButtons.USERS, AdminMenuButtons.EXIT))
     await state.set_state(AdminFSM.default)
 
@@ -276,6 +278,21 @@ async def admin_see_user_info(callback: CallbackQuery, state: FSMContext):
     info = await user_manager.get_user_info(user_id)
     await callback.message.answer(info, reply_markup=keyboard_builder(1, AdminMenuButtons.CLOSE))
 
+
+@admin_router.callback_query(F.data == AdminMenuButtons.SEE_ACTIVITY_DAY.value)
+async def admin_activity_today(callback: CallbackQuery, state: FSMContext):
+    info = await user_progress_manager.activity()
+    await callback.message.answer(info, reply_markup=keyboard_builder(1, AdminMenuButtons.CLOSE))
+
+@admin_router.callback_query(F.data == AdminMenuButtons.SEE_ACTIVITY_WEEK.value)
+async def admin_activity_today(callback: CallbackQuery, state: FSMContext):
+    info = await user_progress_manager.activity(interval=7)
+    await callback.message.answer(info, reply_markup=keyboard_builder(1, AdminMenuButtons.CLOSE))
+
+@admin_router.callback_query(F.data == AdminMenuButtons.SEE_ACTIVITY_MONTH.value)
+async def admin_activity_today(callback: CallbackQuery, state: FSMContext):
+    info = await user_progress_manager.activity(interval=30)
+    await callback.message.answer(info, reply_markup=keyboard_builder(1, AdminMenuButtons.CLOSE))
 
 async def send_long_message(callback, text, max_length=4000, **kwargs):
     paragraphs = text.split('\n')
