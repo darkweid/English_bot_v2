@@ -94,6 +94,13 @@ async def start_testing(callback: CallbackQuery, state: FSMContext):
     await state.set_state(LearningFSM.testing_choosing_section)
 
 
+@user_router.callback_query((F.data == 'choose_other_section_training'))
+async def start_testing(callback: CallbackQuery, state: FSMContext):
+    await callback.answer('Отличный выбор!')
+    await callback.message.answer(MessageTexts.CHOOSE_SECTION.value, reply_markup=choose_section_testing_keyboard)
+    await state.set_state(LearningFSM.testing_choosing_section)
+
+
 @user_router.callback_query((F.data == BasicButtons.BACK.value), StateFilter(LearningFSM.testing_choosing_subsection))
 async def start_testing(callback: CallbackQuery, state: FSMContext):  # выбор раздела для прохождения тесте
     await callback.answer()
@@ -116,7 +123,6 @@ async def choosing_section_testing(callback: CallbackQuery, state: FSMContext):
                                       BasicButtons.MAIN_MENU))
     await state.set_state(LearningFSM.testing_choosing_subsection)
     await update_state_data(state, section=callback.data, subsection=None)
-    print(await state.get_data())
 
 
 @user_router.callback_query(
@@ -130,21 +136,81 @@ async def choosing_subsection_testing(callback: CallbackQuery, state: FSMContext
 Готов проходить?""", reply_markup=keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
                                                    ready_for_test=BasicButtons.READY))
     await update_state_data(state, subsection=subsection)
-    print(await state.get_data())
     await state.set_state(LearningFSM.testing_choosed_subsection)
 
 
 @user_router.callback_query((F.data == 'ready_for_test'))
-async def choosed_subsection_testing(callback: CallbackQuery, state: FSMContext):
+async def choosed_subsection_testing(callback: CallbackQuery, state: FSMContext, prev_message_delete: bool = True):
     await callback.answer()
-    await callback.message.delete()
-    await callback.message.answer(f'Напиши мне чем заполнить пробел в предложении:\n{None}')
+    if prev_message_delete:
+        await callback.message.delete()
+    else:
+        pass
+    data = await state.get_data()
+    subsection, section, user_id = data.get('subsection'), data.get('section'), callback.from_user.id
+    exercise = await exercise_manager.get_random_testing_exercise(section=section, subsection=subsection,
+                                                                  user_id=user_id)
+    if exercise:
+        test, answer, id = exercise
+    else:
+        await callback.message.answer(MessageTexts.ALL_EXERCISES_COMPLETED, reply_markup=keyboard_builder(1,
+                                                                                                          choose_other_section_training=BasicButtons.CHOOSE_OTHER_SECTION))
+        return
+    await callback.message.answer(f'{MessageTexts.GIVE_ME_YOUR_ANSWER.value}\n{test}')
     await state.set_state(LearningFSM.testing_in_process)
+    await update_state_data(state, current_test=test, current_answer=answer.strip(), current_id=id)
 
-@user_router.callback_query(StateFilter(LearningFSM.testing_in_process))
-async def in_process_testing(callback: CallbackQuery, state: FSMContext):
+
+@user_router.message(StateFilter(LearningFSM.testing_in_process))  # В процессе тестирования
+async def in_process_testing(message: Message, state: FSMContext):
+    data = await state.get_data()
+    section, subsection, exercise_id, user_id = data.get('section'), data.get('subsection'), data.get(
+        'current_id'), message.from_user.id
+    answer = data.get('current_answer')
+    if message.text.lower() == answer.lower():
+
+        first_try = await user_progress_manager.mark_exercise_completed(exercise_type='Testing',
+                                                                        section=section,
+                                                                        subsection=subsection,
+                                                                        exercise_id=exercise_id, user_id=user_id,
+                                                                        success=True)
+        data = await state.get_data()
+        subsection, section, user_id = data.get('subsection'), data.get('section'), message.from_user.id
+        exercise = await exercise_manager.get_random_testing_exercise(section=section,
+                                                                      subsection=subsection,
+                                                                      user_id=user_id)
+        if not exercise:
+            await message.answer(MessageTexts.ALL_EXERCISES_COMPLETED, reply_markup=keyboard_builder(1,
+                                                                                                     choose_other_section_training=BasicButtons.CHOOSE_OTHER_SECTION))
+
+        else:
+            test, answer, id = exercise
+            await update_state_data(state, current_test=test, current_answer=answer.strip(), current_id=id)
+            if first_try:
+                await message.answer(f'{random.choice(list_right_answers)}\nYou got it on the first try!')
+                await message.answer(f'{MessageTexts.GIVE_ME_YOUR_ANSWER.value}\n{test}')
+            else:
+                await message.answer(f'{random.choice(list_right_answers)}')
+                await message.answer(f'{MessageTexts.GIVE_ME_YOUR_ANSWER.value}\n{test}')
+
+    else:
+        await message.answer(MessageTexts.INCORRECT_ANSWER,
+                             reply_markup=keyboard_builder(1, see_answer_testing=BasicButtons.SEE_ANSWER))
+        await user_progress_manager.mark_exercise_completed(exercise_type='Testing', section=section,
+                                                            subsection=subsection,
+                                                            exercise_id=exercise_id, user_id=user_id, success=False)
+
+
+@user_router.callback_query((F.data == 'see_answer_testing'))  # Подсказка в тестировании
+async def see_answer_testing(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    #здесь если правильно, то хорошо, если нет, то не хорошо))
+    data = await state.get_data()
+    answer = data.get('current_answer')
+    await callback.message.edit_text(f'Правильный ответ:\n{answer.capitalize()}')
+    await asyncio.sleep(3)
+    await callback.message.answer(MessageTexts.LEARN_FROM_MISTAKES)
+    await choosed_subsection_testing(callback, state, prev_message_delete=False)
+
 
 @user_router.message(Command(commands=["info"]))
 async def info_command(message: Message, state: FSMContext):
