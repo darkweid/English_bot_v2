@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy import func, update, delete, not_
 from db.models import Base, TestingExercise, IrregularVerb, NewWord, UserProgress, User
 from db.init import engine
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import random
 
 SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -187,6 +187,45 @@ class UserProgressManager(DatabaseManager):
             print(f'All exercises completed: {success_exercises_count == exercises_count}\n\n')
 
             return success_exercises_count == exercises_count
+
+    async def activity(self, interval=0):
+        async with self.db as session:
+            target_date = (datetime.utcnow() - timedelta(days=interval)).date()
+            now = datetime.utcnow().date()
+            result_testing = (await session.execute(
+                select(func.count()).select_from(UserProgress).where(
+                    UserProgress.exercise_type == 'Testing',
+                    UserProgress.date >= target_date,
+                    UserProgress.date <= now))).scalar()
+
+            result_new_words = (await session.execute(
+                select(func.count()).select_from(UserProgress).where(
+                    UserProgress.exercise_type == 'New words',
+                    UserProgress.date >= target_date,
+                    UserProgress.date <= now))).scalar()
+
+            result_irregular_verbs = (await session.execute(
+                select(func.count()).select_from(UserProgress).where(
+                    UserProgress.exercise_type == 'Irregular verbs',
+                    UserProgress.date >= target_date,
+                    func.date(UserProgress.date) <= now))).scalar()
+            result_new_users = (await session.execute(
+                select(func.count()).select_from(User).where(
+                    func.date(User.registration_date) >= target_date,
+                    func.date(User.registration_date) <= now))).scalar()
+            if interval == 0:
+                text = 'сегодня'
+            elif interval == 7:
+                text = 'последнюю неделю'
+            elif interval == 30:
+                text = 'последний месяц'
+            info = f"""Статистика за {text}:
+Тестирование: {result_testing}
+Изучение новых слов: {result_new_words}
+Неправильные глаголы: {result_irregular_verbs}
+Новых пользователей: {result_new_users}"""
+
+            return info
 
 
 class UserManager(DatabaseManager):
