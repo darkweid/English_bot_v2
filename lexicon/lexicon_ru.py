@@ -157,6 +157,8 @@ class AdminMenuButtons(Enum):
 
     SEE_ACTIVITY_DAY = 'Посмотреть активность за день'
     SEE_ACTIVITY_WEEK = 'Посмотреть активность за неделю'
+    SEE_ACTIVITY_MONTH = 'Посмотреть активность за месяц'
+
     SEE_CHART = 'Посмотреть рейтинг пользователей'
 
     USERS = 'Пользователи'
