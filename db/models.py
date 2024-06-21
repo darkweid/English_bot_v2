@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Time, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, DateTime, Time, ForeignKey, Boolean
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -33,8 +33,10 @@ class UserProgress(Base):
     user_id = Column(Integer, primary_key=True, nullable=False)
     exercise_type = Column(String, primary_key=True, nullable=False)
     exercise_section = Column(Integer, primary_key=True, nullable=True)
+    exercise_subsection = Column(Integer, primary_key=True, nullable=True)
     exercise_id = Column(Integer, primary_key=True, nullable=False)
     attempts = Column(Integer, default=1)
+    success = Column(Boolean, default=False)
     date = Column(Date, nullable=False)
 
 
