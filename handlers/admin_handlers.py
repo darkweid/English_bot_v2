@@ -3,9 +3,9 @@ from config_data.config import Config, load_config
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
-from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, InlineKeyboardMarkup
 from states import AdminFSM, LearningFSM
-from db import ExerciseManager, UserProgressManager
+from db import ExerciseManager, UserProgressManager, UserManager
 from keyboards import *
 from lexicon import *
 from utils import message_to_admin, update_state_data
@@ -17,6 +17,15 @@ ADMINS: list = config.tg_bot.admin_ids
 admin_router: Router = Router()
 exercise_manager: ExerciseManager = ExerciseManager()
 user_progress_manager: UserProgressManager = UserProgressManager()
+user_manager: UserManager = UserManager()
+
+
+@admin_router.message(Command(commands=["test"]))
+async def admin_command(message: Message, state: FSMContext):
+    for user in (await user_manager.get_all_users()):
+        await message.answer(str(user))
+    await user_progress_manager.get_completed_exercises_testing(user_id=message.from_user.id, section='Tenses',
+                                                                subsection='Present Simple')
 
 
 @admin_router.message(Command(commands=["admin"]))
@@ -42,7 +51,7 @@ async def admin_command(callback: CallbackQuery, state: FSMContext):
     await state.set_state(AdminFSM.default)
 
 
-@admin_router.callback_query((F.data == AdminMenuButtons.CLOSE.value))
+@admin_router.callback_query((F.data == AdminMenuButtons.CLOSE.value), ~StateFilter(AdminFSM.see_user_info))
 @admin_router.callback_query((F.data == AdminMenuButtons.EXIT.value))
 async def admin_exit(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
@@ -244,6 +253,28 @@ async def admin_deleting_sentence_grammar(message: Message, state: FSMContext):
                              reply_markup=keyboard_builder(1, AdminMenuButtons.MAIN_MENU, AdminMenuButtons.EXIT))
         for index in indexes:
             await exercise_manager.delete_testing_exercise(section=section, subsection=subsection, index=index)
+
+
+# Users
+
+@admin_router.callback_query(F.data == AdminMenuButtons.USERS.value)
+async def admin_users(callback: CallbackQuery, state: FSMContext):
+    users = await user_manager.get_all_users()
+    await callback.message.answer('Нажми на кнопку для получения информации о пользователе:',
+                                  reply_markup=keyboard_builder_users(users))
+    await state.set_state(AdminFSM.see_user_info)
+
+
+@admin_router.callback_query(F.data == AdminMenuButtons.CLOSE.value, StateFilter(AdminFSM.see_user_info))
+async def admin_see_user_info_close_message(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
+
+
+@admin_router.callback_query(StateFilter(AdminFSM.see_user_info))
+async def admin_see_user_info(callback: CallbackQuery, state: FSMContext):
+    user_id = int(callback.data)
+    info = await user_manager.get_user_info(user_id)
+    await callback.message.answer(info, reply_markup=keyboard_builder(1, AdminMenuButtons.CLOSE))
 
 
 async def send_long_message(callback, text, max_length=4000, **kwargs):
