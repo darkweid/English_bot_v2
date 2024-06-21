@@ -1,9 +1,10 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.future import select
-from sqlalchemy import func, update, delete
+from sqlalchemy import func, update, delete, not_
 from db.models import Base, TestingExercise, IrregularVerb, NewWord, UserProgress, User
 from db.init import engine
-from datetime import datetime
+from datetime import datetime, date
+import random
 
 SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -60,6 +61,34 @@ class ExerciseManager(DatabaseManager):
                 result += f'{exercise.id}) {exercise.test}. Ответ: {exercise.answer}\n\n'
             return result
 
+    async def get_random_testing_exercise(self, section: str, subsection: str, user_id: int):
+        async with self.db as session:
+            # Подзапрос для получения ID упражнений, которые пользователь уже выполнил успешно
+            subquery = (select(UserProgress.exercise_id).filter(
+                UserProgress.user_id == user_id,
+                UserProgress.exercise_section == section,
+                UserProgress.exercise_subsection == subsection,
+                UserProgress.success == True)).subquery()
+
+            # Основной запрос для получения упражнений, которые пользователь еще не выполнял успешно
+            stmt = (
+                select(TestingExercise)
+                .filter(
+                    TestingExercise.section == section,
+                    TestingExercise.subsection == subsection,
+                    TestingExercise.id.not_in(subquery)
+                )
+            )
+
+            result = await session.execute(stmt)
+            exercises = result.scalars().all()
+
+            if not exercises:
+                return None  # Если нет доступных упражнений
+            result = random.choice(exercises)
+            # Возвращаем случайное упражнение из списка
+            return (result.test, result.answer, result.id)
+
     async def get_irregular_verbs(self):
         async with self.db as session:
             result = await session.execute(select(IrregularVerb))
@@ -86,41 +115,59 @@ class ExerciseManager(DatabaseManager):
                                                   TestingExercise.subsection == subsection,
                                                   TestingExercise.id == index))
 
+
 class UserProgressManager(DatabaseManager):
     async def init_tables(self):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-    async def mark_exercise_completed(self, user_id, exercise_type, exercise_section, exercise_id, success):
+    async def mark_exercise_completed(self, user_id, exercise_type, subsection, section, exercise_id,
+                                      success):
         async with self.db as session:
-            async with session.begin():
-                progress = await session.get(
-                    UserProgress, (user_id, exercise_type, exercise_section, exercise_id)
+            first_try = False
+            stmt = (
+                update(UserProgress)
+                .where(
+                    UserProgress.user_id == user_id,
+                    UserProgress.exercise_type == exercise_type,
+                    UserProgress.exercise_section == section,
+                    UserProgress.exercise_subsection == subsection,
+                    UserProgress.exercise_id == exercise_id
                 )
-                if progress:
-                    if not success:
-                        progress.attempts += 1
-                else:
-                    progress = UserProgress(
-                        user_id=user_id,
-                        exercise_type=exercise_type,
-                        exercise_section=exercise_section,
-                        exercise_id=exercise_id,
-                        attempts=1,
-                        date=datetime.utcnow().date(),
+                .values(
+                    attempts=UserProgress.attempts + 1,
+                    success=success,
+                    date=date.today()
+                )
+            )
+            result = await session.execute(stmt)
 
-                    )
-                session.add(progress)
+            if result.rowcount == 0:
+                new_record = UserProgress(
+                    user_id=user_id,
+                    exercise_type=exercise_type,
+                    exercise_section=section,
+                    exercise_subsection=subsection,
+                    exercise_id=exercise_id,
+                    attempts=1,
+                    success=success,
+                    date=date.today()
+                )
+                session.add(new_record)
+                first_try = True
 
-    async def get_completed_exercises(self, user_id, exercise_type):
+            await session.commit()
+            return first_try
+
+
+    async def get_completed_exercises(self, user_id, exercise_type, section, subsection):
         async with self.db as session:
             result = await session.execute(
-                select(UserProgress).where(
+                select(func.count()).select_from(UserProgress).where(
                     UserProgress.user_id == user_id,
                     UserProgress.exercise_type == exercise_type
                 )
             )
-            return [row.exercise_id for row in result.scalars().all()]
 
 
 class UserManager(DatabaseManager):
