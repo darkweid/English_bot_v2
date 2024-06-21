@@ -1,3 +1,4 @@
+from time import strftime
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.future import select
 from sqlalchemy import func, update, delete, not_
@@ -159,15 +160,33 @@ class UserProgressManager(DatabaseManager):
             await session.commit()
             return first_try
 
-
-    async def get_completed_exercises(self, user_id, exercise_type, section, subsection):
+    async def get_completed_exercises_testing(self, user_id, section, subsection):
         async with self.db as session:
-            result = await session.execute(
+            # Выполнение запроса для получения количества успешных упражнений
+            success_exercises_result = await session.execute(
                 select(func.count()).select_from(UserProgress).where(
                     UserProgress.user_id == user_id,
-                    UserProgress.exercise_type == exercise_type
+                    UserProgress.exercise_type == 'Testing',
+                    UserProgress.exercise_section == section,
+                    UserProgress.exercise_subsection == subsection,
+                    UserProgress.success == True
                 )
             )
+            success_exercises_count = success_exercises_result.scalar()
+
+            exercises_result = await session.execute(
+                select(func.count()).select_from(TestingExercise).where(
+                    TestingExercise.section == section,
+                    TestingExercise.subsection == subsection
+                )
+            )
+            exercises_count = exercises_result.scalar()
+
+            # Вывод результатов
+            print(f'\n\n\nSuccess exercises: {success_exercises_count}, Total exercises: {exercises_count}\n')
+            print(f'All exercises completed: {success_exercises_count == exercises_count}\n\n')
+
+            return success_exercises_count == exercises_count
 
 
 class UserManager(DatabaseManager):
@@ -197,3 +216,43 @@ class UserManager(DatabaseManager):
                 await session.commit()
                 print(f"User {full_name} added successfully.")
                 return None
+
+    async def get_all_users(self):
+        async with self.db as session:
+            async with session.begin():
+                result = await session.execute(select(User))
+                users = result.scalars().all()  # Извлекаем все строки как объекты User
+
+                # Создаем список словарей с информацией о каждом пользователе
+                user_info = [
+                    {
+                        'id': user.id,
+                        'user_id': user.user_id,
+                        'full_name': user.full_name,
+                        'tg_login': user.tg_login,
+                        'registration_date': user.registration_date,
+                        'points': user.points,
+                        'reminder_time': user.reminder_time,
+                        'time_zone': user.time_zone
+                    }
+                    for user in users
+                ]
+
+                return user_info
+
+    async def get_user_info(self, user_id: int):
+        async with self.db as session:
+            async with session.begin():
+                result = await session.execute(select(User).filter_by(user_id=user_id))
+                user = result.scalars().first()
+                if user:
+                    info = f"""Имя: {user.full_name}
+telegram: @{user.tg_login}
+Дата регистрации: {user.registration_date.strftime('%H:%M %d-%m-%Y')}
+Баллов: {user.points}
+Время напоминаний: {user.reminder_time}
+Часовой пояс: {user.time_zone}
+telegram id: {user.user_id}"""
+
+                    return info
+            return None
