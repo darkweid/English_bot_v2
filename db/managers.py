@@ -386,19 +386,23 @@ class UserManager(DatabaseManager):
 
                 return user_info
 
-    async def get_user_info(self, user_id: int):
+    async def get_user_info(self, user_id: int, admin: bool = True):
         async with self.db as session:
             async with session.begin():
                 result = await session.execute(select(User).filter_by(user_id=user_id))
                 user = result.scalars().first()
                 if user:
                     info = f"""Имя: {user.full_name}
+                    info = ''
+                    if admin:
+                        info += f"""Имя: {user.full_name}
 telegram: @{user.tg_login}
-Дата регистрации: {user.registration_date.strftime('%H:%M %d-%m-%Y')}
-Баллов: {user.points}
-Время напоминаний: {user.reminder_time}
-Часовой пояс: {user.time_zone}
-telegram id: {user.user_id}"""
+telegram id: {user.user_id}
+Баллов: {user.points}\n"""
+
+                    info += f"""Дата регистрации: {user.registration_date.strftime('%d-%m-%Y | %H:%M UTC')}
+Время напоминаний: { user.reminder_time if user.reminder_time else 'Не установлено'}
+Часовой пояс: {user.time_zone if user.time_zone else 'Не установлен'}"""
 
                     return info
-            return None
+                return None
