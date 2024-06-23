@@ -392,7 +392,6 @@ class UserManager(DatabaseManager):
                 result = await session.execute(select(User).filter_by(user_id=user_id))
                 user = result.scalars().first()
                 if user:
-                    info = f"""Имя: {user.full_name}
                     info = ''
                     if admin:
                         info += f"""Имя: {user.full_name}
