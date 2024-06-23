@@ -9,8 +9,8 @@ ConstructionsSections, PhrasesAndWordsSections, PrepositionsSections, ModalVerbs
 ConditionalsSections]
 
 
-def keyboard_builder(width: int, *args: ButtonEnumType, args_go_first: bool = True,
-                     **kwargs: dict[str, ButtonEnumType]) -> InlineKeyboardMarkup:
+async def keyboard_builder(width: int, *args: ButtonEnumType, args_go_first: bool = True,
+                           **kwargs: dict[str, ButtonEnumType]) -> InlineKeyboardMarkup:
     kb_builder: InlineKeyboardBuilder = InlineKeyboardBuilder()
     buttons: list[InlineKeyboardButton] = []
     if args_go_first:
@@ -40,21 +40,15 @@ def keyboard_builder(width: int, *args: ButtonEnumType, args_go_first: bool = Tr
     return kb_builder.as_markup()
 
 
-def keyboard_builder_users(users: list) -> InlineKeyboardMarkup:
+async def keyboard_builder_users(users: list) -> InlineKeyboardMarkup:
     kb_builder: InlineKeyboardBuilder = InlineKeyboardBuilder()
     buttons: list[InlineKeyboardButton] = []
     for user in users:
         buttons.append(InlineKeyboardButton(
-            text=f"{user.get('id')}) @{user.get('tg_login')} | {user.get('full_name')} | {user.get('user_id')}",
+            text=f"{user.get('id')}. @{user.get('tg_login')} [{user.get('full_name')}][{user.get('user_id')}]",
             callback_data=str(user.get('user_id'))))
     buttons.append(InlineKeyboardButton(
         text=AdminMenuButtons.EXIT,
         callback_data=AdminMenuButtons.EXIT))
     kb_builder.row(*buttons, width=1)
     return kb_builder.as_markup()
-
-
-main_menu_keyboard: InlineKeyboardMarkup = keyboard_builder(1, *[button.value for button in MainMenuButtons])
-choose_section_testing_keyboard: InlineKeyboardMarkup = keyboard_builder(1, *[button.value for button in
-                                                                              TestingSections], BasicButtons.BACK,
-                                                                         BasicButtons.MAIN_MENU)
