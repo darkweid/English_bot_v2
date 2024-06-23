@@ -1,7 +1,7 @@
 from time import strftime
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.future import select
-from sqlalchemy import func, update, delete, not_
+from sqlalchemy import func, update, delete, not_, desc
 from db.models import Base, TestingExercise, IrregularVerb, NewWord, UserProgress, User
 from db.init import engine
 from datetime import datetime, date, timedelta
@@ -143,6 +143,10 @@ class UserProgressManager(DatabaseManager):
             )
             result = await session.execute(stmt)
 
+            points = (1 if success else -1)
+            stmt = (update(User).where(User.user_id == user_id).values(points=User.points + points))
+            await session.execute(stmt)
+
             if result.rowcount == 0:
                 new_record = UserProgress(
                     user_id=user_id,
@@ -188,7 +192,7 @@ class UserProgressManager(DatabaseManager):
 
             return success_exercises_count == exercises_count
 
-    async def activity(self, interval=0):
+    async def get_activity(self, interval: int = 0):
         async with self.db as session:
             target_date = (datetime.utcnow() - timedelta(days=interval)).date()
             now = datetime.utcnow().date()
@@ -213,19 +217,122 @@ class UserProgressManager(DatabaseManager):
                 select(func.count()).select_from(User).where(
                     func.date(User.registration_date) >= target_date,
                     func.date(User.registration_date) <= now))).scalar()
+
             if interval == 0:
                 text = 'сегодня'
             elif interval == 7:
                 text = 'последнюю неделю'
             elif interval == 30:
                 text = 'последний месяц'
-            info = f"""Статистика за {text}:
+            info = f"""Статистика по всем пользователям за {text}:
 Тестирование: {result_testing}
 Изучение новых слов: {result_new_words}
 Неправильные глаголы: {result_irregular_verbs}
 Новых пользователей: {result_new_users}"""
 
             return info
+
+    async def get_activity_by_user(self, user_id: int, interval: int = 0):
+        async with self.db as session:
+            target_date = (datetime.utcnow() - timedelta(days=interval)).date()
+            now = datetime.utcnow().date()
+            result_testing = (await session.execute(
+                select(func.count()).select_from(UserProgress).where(
+                    UserProgress.exercise_type == 'Testing',
+                    UserProgress.date >= target_date,
+                    UserProgress.date <= now,
+                    UserProgress.user_id == user_id))).scalar()
+
+            result_new_words = (await session.execute(
+                select(func.count()).select_from(UserProgress).where(
+                    UserProgress.exercise_type == 'New words',
+                    UserProgress.date >= target_date,
+                    UserProgress.date <= now,
+                    UserProgress.user_id == user_id))).scalar()
+
+            result_irregular_verbs = (await session.execute(
+                select(func.count()).select_from(UserProgress).where(
+                    UserProgress.exercise_type == 'Irregular verbs',
+                    UserProgress.date >= target_date,
+                    func.date(UserProgress.date) <= now,
+                    UserProgress.user_id == user_id))).scalar()
+            if interval == 0:
+                text = 'сегодня'
+            elif interval == 7:
+                text = 'последнюю неделю'
+            elif interval == 30:
+                text = 'последний месяц'
+            info = f"""
+Твоя статистика за <b>{text}</b>:
+Тестирование: {result_testing}
+Изучение новых слов: {result_new_words}
+Неправильные глаголы: {result_irregular_verbs}
+"""
+
+            return info
+
+    async def get_user_points(self, user_id: int):
+        async with self.db as session:
+            result_points = (await session.execute(
+                select(User.points).select_from(User).where(
+                    User.user_id == user_id))).scalar()
+
+            return result_points
+
+    async def get_user_rank_and_total(self, user_id: int, medals_rank: bool = False):
+        async with self.db as session:
+            async with session.begin():
+                user_points = (await session.execute(
+                    select(User.points).where(User.user_id == user_id))).scalar()
+
+                higher_ranked_count = (await session.execute(
+                    select(func.count()).select_from(User).where(User.points > user_points)
+                )).scalar()
+
+                total_users = (await session.execute(
+                    select(func.count()).select_from(User)
+                )).scalar()
+                user_rank = higher_ranked_count + 1
+                if medals_rank:
+                    if user_rank == 1:
+                        user_rank = '🥇'
+                    elif user_rank == 2:
+                        user_rank = '🥈'
+                    elif user_rank == 3:
+                        user_rank = '🥉'
+
+                return user_rank, total_users
+
+    async def get_all_users_ranks_and_points(self, medals_rank: bool = False):
+        async with self.db as session:
+            async with session.begin():
+                users = await session.execute(
+                    select(User.id, User.user_id, User.full_name, User.tg_login, User.points)
+                    .order_by(desc(User.points))
+                )
+
+                users = users.fetchall()
+
+                users_with_ranks = []
+
+                for rank, user in enumerate(users, start=1):
+                    if medals_rank:
+                        if rank == 1:
+                            rank = '🥇'
+                        elif rank == 2:
+                            rank = '🥈'
+                        elif rank == 3:
+                            rank = '🥉'
+
+                    users_with_ranks.append({
+                        'rank': str(rank),
+                        'user_id': str(user.user_id),
+                        'full_name': user.full_name,
+                        'tg_login': user.tg_login,
+                        'points': str(user.points)
+                    })
+
+                return users_with_ranks
 
 
 class UserManager(DatabaseManager):
