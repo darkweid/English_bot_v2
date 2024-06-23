@@ -62,6 +62,11 @@ async def admin_exit(callback: CallbackQuery, state: FSMContext):
                             index_testing_delete=None)
     await state.set_state(LearningFSM.default)
 
+@admin_router.callback_query((F.data == 'stats_users_table_close')) # close without change state
+async def close_message_without_state_changes(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
+    await callback.answer()
+
 
 @admin_router.callback_query((F.data == AdminMenuButtons.EXERCISES.value), StateFilter(AdminFSM.default))
 @admin_router.callback_query((F.data == BasicButtons.BACK.value), StateFilter(AdminFSM.choose_section_testing))
@@ -262,8 +267,22 @@ async def admin_deleting_sentence_grammar(message: Message, state: FSMContext):
 @admin_router.callback_query(F.data == AdminMenuButtons.USERS.value)
 async def admin_users(callback: CallbackQuery, state: FSMContext):
     users = await user_manager.get_all_users()
+    users_ranks_and_points = await user_progress_manager.get_all_users_ranks_and_points(medals_rank=True)
+    rank_info = f"""<pre>Рейтинг всех пользователей:\n
+[{'№'.center(6)}] [{'Баллы'.center(7)}] [{'Имя'.center(20)}]\n"""
+    count = 0
+    for user in users_ranks_and_points:
+        if count < 3:
+            rank_info += f"[{user.get('rank').center(5)}] [{user.get('points').center(7)}] [{user.get('full_name').center(20)}]\n"
+        else:
+            rank_info += f"[{user.get('rank').center(6)}] [{user.get('points').center(7)}] [{user.get('full_name').center(20)}]\n"
+        count += 1
+    rank_info += "</pre>"
+
+    await callback.message.answer(rank_info,
+                                  reply_markup=keyboard_builder(1, stats_users_table_close=AdminMenuButtons.CLOSE))
     await callback.message.answer('Нажми на кнопку для получения информации о пользователе:',
-                                  reply_markup=keyboard_builder_users(users))
+                                  reply_markup=await keyboard_builder_users(users))
     await state.set_state(AdminFSM.see_user_info)
 
 
@@ -280,19 +299,19 @@ async def admin_see_user_info(callback: CallbackQuery, state: FSMContext):
 
 
 @admin_router.callback_query(F.data == AdminMenuButtons.SEE_ACTIVITY_DAY.value)
-async def admin_activity_today(callback: CallbackQuery, state: FSMContext):
-    info = await user_progress_manager.activity()
-    await callback.message.answer(info, reply_markup=keyboard_builder(1, AdminMenuButtons.CLOSE))
-
 @admin_router.callback_query(F.data == AdminMenuButtons.SEE_ACTIVITY_WEEK.value)
-async def admin_activity_today(callback: CallbackQuery, state: FSMContext):
-    info = await user_progress_manager.activity(interval=7)
+@admin_router.callback_query(F.data == AdminMenuButtons.SEE_ACTIVITY_MONTH.value)
+async def admin_activity(callback: CallbackQuery, state: FSMContext):
+    cbdata = callback.data
+    if cbdata == AdminMenuButtons.SEE_ACTIVITY_DAY.value:
+        interval = 0
+    elif cbdata == AdminMenuButtons.SEE_ACTIVITY_WEEK.value:
+        interval = 7
+    elif cbdata == AdminMenuButtons.SEE_ACTIVITY_MONTH.value:
+        interval = 30
+    info = await user_progress_manager.get_activity(interval)
     await callback.message.answer(info, reply_markup=keyboard_builder(1, AdminMenuButtons.CLOSE))
 
-@admin_router.callback_query(F.data == AdminMenuButtons.SEE_ACTIVITY_MONTH.value)
-async def admin_activity_today(callback: CallbackQuery, state: FSMContext):
-    info = await user_progress_manager.activity(interval=30)
-    await callback.message.answer(info, reply_markup=keyboard_builder(1, AdminMenuButtons.CLOSE))
 
 async def send_long_message(callback, text, max_length=4000, **kwargs):
     paragraphs = text.split('\n')
