@@ -51,6 +51,7 @@ async def main():
         await set_main_menu(bot)
         await bot.delete_webhook(drop_pending_updates=True)
         await send_message_to_admin(bot, text='🟢 Бот запущен 🟢')
+        await on_startup(dp, bot)
         await dp.start_polling(bot, )
     except Exception as e:
         logger.exception("Ошибка: %s", str(e))
@@ -77,5 +78,19 @@ async def schedule_reminders(bot):
                               hour=reminder_time.hour, minute=reminder_time.minute,
                               timezone=user_tz,
                               kwargs={'user_id': user_id, 'bot': bot})
+
+
+async def update_reminders(bot):
+    while True:
+        await schedule_reminders(bot)
+        await asyncio.sleep(60 * 60)
+
+
+async def on_startup(dispatcher: Dispatcher, bot: Bot):
+    scheduler.start()
+    await schedule_reminders(bot)
+    asyncio.create_task(update_reminders(bot))
+
+
 if __name__ == "__main__":
     asyncio.run(main())
