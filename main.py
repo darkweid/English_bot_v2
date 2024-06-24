@@ -1,4 +1,5 @@
 import asyncio, logging
+from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot, Dispatcher
@@ -10,6 +11,7 @@ from handlers.user_handlers import user_router
 from handlers.admin_handlers import admin_router
 from keyboards.set_menu import set_main_menu
 from utils import send_message_to_admin
+from lexicon import MessageTexts
 from db import init_db, ExerciseManager, UserManager, UserProgressManager
 
 logger = logging.getLogger(__name__)
@@ -58,5 +60,18 @@ async def main():
         await send_message_to_admin(bot, text='🟥 Бот остановлен 🟥')
 
 
+async def schedule_reminders(bot):
+    users = await user_manager.get_all_users()
+    scheduler.remove_all_jobs()
+    for user in users:
+        reminder_time = user.get('reminder_time')
+        user_tz_offset = user.get('time_zone')
+        user_id = user.get('user_id')
+        if reminder_time and user_tz_offset:
+            user_tz = timezone(timedelta(hours=int(user_tz_offset)))
+            scheduler.add_job(func=send_reminder, trigger='cron',
+                              hour=reminder_time.hour, minute=reminder_time.minute,
+                              timezone=user_tz,
+                              kwargs={'user_id': user_id, 'bot': bot})
 if __name__ == "__main__":
     asyncio.run(main())
