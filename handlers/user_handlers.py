@@ -1,4 +1,5 @@
 import asyncio, random, json, csv, time
+from datetime import datetime
 
 from aiogram import Router, F, Bot
 from aiogram.filters import Command, StateFilter
@@ -6,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.types import LinkPreviewOptions, CallbackQuery, Message, ReplyKeyboardRemove
 from states import LearningFSM
-from utils import send_message_to_admin, update_state_data
+from utils import send_message_to_admin, update_state_data, time_zones
 from lexicon import *
 from db import *
 from keyboards import *
@@ -22,6 +23,10 @@ async def resetFSM_command(message: Message, state: FSMContext):
     await state.clear()
     await message.answer('Сброшено!')
 
+@user_router.callback_query(F.data == BasicButtons.CLOSE.value)
+async def close_message(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.delete()
 
 @user_router.message(Command(commands=["start"]),
                      StateFilter(default_state))  # стандартное состояние, пользователь не зарегистрирован в боте
@@ -57,8 +62,7 @@ async def process_start_command_existing_user(message: Message, state: FSMContex
 @user_router.message(Command(commands=["stats"]), ~StateFilter(default_state))
 async def stats_user_command(message: Message, state: FSMContext):
     user_id = message.from_user.id
-    info = await user_manager.get_user_info(user_id, admin=False)
-
+    info = await user_manager.get_user_info_text(user_id, admin=False)
     await message.answer(f'{info}\n\n{MessageTexts.STATS_USER.value}',
                          reply_markup=await keyboard_builder(1, BasicButtons.CLOSE, args_go_first=False,
                                                              stats_today=BasicButtons.TODAY,
@@ -165,7 +169,7 @@ async def main_menu(callback: CallbackQuery, state: FSMContext):
     await state.set_state(LearningFSM.default)
 
 
-@user_router.callback_query((F.data == 'Правила тесты'))
+@user_router.callback_query((F.data == 'rules_testing'))
 async def rules_testing(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await callback.message.edit_text(MessageTexts.TEST_RULES.value,
