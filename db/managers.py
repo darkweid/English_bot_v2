@@ -62,6 +62,14 @@ class ExerciseManager(DatabaseManager):
                 result += f'{exercise.id}) {exercise.test}. Ответ: {exercise.answer}\n\n'
             return result
 
+    async def get_count_testing_exercises_in_subsection(self, section: str, subsection: str):
+        async with self.db as session:
+            count_exercises_in_subsection = (await session.execute(
+                select(func.count()).select_from(TestingExercise).where(
+                    TestingExercise.section == section,
+                    TestingExercise.subsection == subsection))).scalar()
+            return count_exercises_in_subsection
+
     async def get_random_testing_exercise(self, section: str, subsection: str, user_id: int):
         async with self.db as session:
             # Подзапрос для получения ID упражнений, которые пользователь уже выполнил успешно
