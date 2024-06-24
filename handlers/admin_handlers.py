@@ -53,7 +53,7 @@ async def admin_command(callback: CallbackQuery, state: FSMContext):
     await state.set_state(AdminFSM.default)
 
 
-@admin_router.callback_query((F.data == AdminMenuButtons.CLOSE.value), ~StateFilter(AdminFSM.see_user_info))
+@admin_router.callback_query((F.data == 'close_message_admin'), ~StateFilter(AdminFSM.see_user_info))
 @admin_router.callback_query((F.data == AdminMenuButtons.EXIT.value))
 async def admin_exit(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
@@ -141,7 +141,7 @@ async def admin_testing_management(callback: CallbackQuery, state: FSMContext):
         if result:
             await callback.answer()
             await send_long_message(callback, f'Вот все предложения из раздела\n{exercise_name}:\n{result}',
-                                    reply_markup=await keyboard_builder(1, AdminMenuButtons.CLOSE))
+                                    reply_markup=await keyboard_builder(1, close_message_admin=AdminMenuButtons.CLOSE))
         else:
             await callback.answer()
             await callback.message.edit_text(f'В разделе \n{exercise_name} ещё нет упражнений',
@@ -297,7 +297,7 @@ async def admin_see_user_info_close_message(callback: CallbackQuery, state: FSMC
 @admin_router.callback_query(StateFilter(AdminFSM.see_user_info))
 async def admin_see_user_info(callback: CallbackQuery, state: FSMContext):
     user_id = int(callback.data)
-    info = await user_manager.get_user_info(user_id)
+    info = await user_manager.get_user_info_text(user_id)
     await callback.message.answer(info, reply_markup=await keyboard_builder(1, AdminMenuButtons.CLOSE))
 
 
@@ -313,7 +313,8 @@ async def admin_activity(callback: CallbackQuery, state: FSMContext):
     elif cbdata == AdminMenuButtons.SEE_ACTIVITY_MONTH.value:
         interval = 30
     info = await user_progress_manager.get_activity(interval)
-    await callback.message.answer(info, reply_markup=await keyboard_builder(1, AdminMenuButtons.CLOSE))
+    await callback.message.answer(info,
+                                  reply_markup=await keyboard_builder(1, close_message_admin=AdminMenuButtons.CLOSE))
 
 
 async def send_long_message(callback, text, max_length=4000, **kwargs):
