@@ -12,7 +12,8 @@ class LearningFSM(StatesGroup):
 
     verbs_learning = State()  # Пользователь изучает неправильные глаголы
     new_words_learning = State()  # Пользователь изучает новые слова
-    existing_user = State()  # Состояние для существующих пользователей (без приветственного сообщения)
+    existing_user = State()# Состояние для существующих пользователей (без приветственного сообщения)
+    set_reminder_time = State()
 
 
 class AdminFSM(StatesGroup):
