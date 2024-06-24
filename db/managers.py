@@ -172,10 +172,10 @@ class UserProgressManager(DatabaseManager):
             await session.commit()
             return first_try
 
-    async def get_completed_exercises_testing(self, user_id, section, subsection):
+    async def get_counts_completed_exercises_testing(self, user_id, section, subsection):
         async with self.db as session:
             # Выполнение запроса для получения количества успешных упражнений
-            success_exercises_result = await session.execute(
+            success_exercises_count = (await session.execute(
                 select(func.count()).select_from(UserProgress).where(
                     UserProgress.user_id == user_id,
                     UserProgress.exercise_type == 'Testing',
@@ -183,22 +183,27 @@ class UserProgressManager(DatabaseManager):
                     UserProgress.exercise_subsection == subsection,
                     UserProgress.success == True
                 )
-            )
-            success_exercises_count = success_exercises_result.scalar()
+            )).scalar()
 
-            exercises_result = await session.execute(
+            first_try_success_exercises_count = (await session.execute(
+                select(func.count()).select_from(UserProgress).where(
+                    UserProgress.user_id == user_id,
+                    UserProgress.exercise_type == 'Testing',
+                    UserProgress.exercise_section == section,
+                    UserProgress.exercise_subsection == subsection,
+                    UserProgress.success == True,
+                    UserProgress.attempts == 1
+                )
+            )).scalar()
+
+            exercises_count = (await session.execute(
                 select(func.count()).select_from(TestingExercise).where(
                     TestingExercise.section == section,
                     TestingExercise.subsection == subsection
                 )
-            )
-            exercises_count = exercises_result.scalar()
+            )).scalar()
 
-            # Вывод результатов
-            print(f'\n\n\nSuccess exercises: {success_exercises_count}, Total exercises: {exercises_count}\n')
-            print(f'All exercises completed: {success_exercises_count == exercises_count}\n\n')
-
-            return success_exercises_count == exercises_count
+            return first_try_success_exercises_count, success_exercises_count, exercises_count
 
     async def get_activity(self, interval: int = 0):
         async with self.db as session:
