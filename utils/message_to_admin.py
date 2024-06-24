@@ -9,6 +9,6 @@ ADMINS: list = config.tg_bot.admin_ids
 bot: bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
 
-async def send_message_to_admin(bot: Bot, text=''):
+async def send_message_to_admin(bot: Bot, text: str):
     for admin in ADMINS:
         await bot.send_message(admin, text=text)
