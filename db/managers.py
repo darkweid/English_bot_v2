@@ -363,6 +363,20 @@ class UserManager(DatabaseManager):
                 print(f"User {full_name} added successfully.")
                 return None
 
+    async def set_timezone(self, user_id, timezone):
+        async with self.db as session:
+            async with session.begin():
+                await session.execute(update(User).where(User.user_id == user_id).values(time_zone=timezone))
+                await session.commit()
+            return
+
+    async def set_reminder_time(self, user_id, time):
+        async with self.db as session:
+            async with session.begin():
+                await session.execute(update(User).where(User.user_id == user_id).values(reminder_time=time))
+                await session.commit()
+            return
+
     async def get_all_users(self):
         async with self.db as session:
             async with session.begin():
@@ -386,7 +400,25 @@ class UserManager(DatabaseManager):
 
                 return user_info
 
-    async def get_user_info(self, user_id: int, admin: bool = True):
+    async def get_user(self, user_id: int):
+        async with self.db as session:
+            async with session.begin():
+                result = await session.execute(select(User).where(user_id == user_id))
+                user = result.scalars().first()
+                user_info = {
+                    'id': user.id,
+                    'user_id': user.user_id,
+                    'full_name': user.full_name,
+                    'tg_login': user.tg_login,
+                    'registration_date': user.registration_date,
+                    'points': user.points,
+                    'reminder_time': user.reminder_time,
+                    'time_zone': user.time_zone
+                }
+
+            return user_info
+
+    async def get_user_info_text(self, user_id: int, admin: bool = True):
         async with self.db as session:
             async with session.begin():
                 result = await session.execute(select(User).filter_by(user_id=user_id))
@@ -400,8 +432,8 @@ telegram id: {user.user_id}
 Баллов: {user.points}\n"""
 
                     info += f"""Дата регистрации: {user.registration_date.strftime('%d-%m-%Y | %H:%M UTC')}
-Время напоминаний: { user.reminder_time if user.reminder_time else 'Не установлено'}
+Время напоминаний: {user.reminder_time if user.reminder_time else 'Не установлено'}
 Часовой пояс: {user.time_zone if user.time_zone else 'Не установлен'}"""
 
-                    return info
-                return None
+                return info
+            return None
