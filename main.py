@@ -1,5 +1,6 @@
 import asyncio, logging
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -16,6 +17,7 @@ config: Config = load_config()
 BOT_TOKEN: str = config.tg_bot.token
 ADMINS: list = config.tg_bot.admin_ids
 
+scheduler = AsyncIOScheduler()
 exercise_manager = ExerciseManager()
 user_progress_manager = UserProgressManager()
 user_manager = UserManager()
