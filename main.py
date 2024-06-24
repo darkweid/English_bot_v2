@@ -60,6 +60,10 @@ async def main():
         await send_message_to_admin(bot, text='🟥 Бот остановлен 🟥')
 
 
+async def send_reminder(bot: Bot, user_id):
+    await bot.send_message(user_id, text=MessageTexts.REMINDER.value)
+
+
 async def schedule_reminders(bot):
     users = await user_manager.get_all_users()
     scheduler.remove_all_jobs()
