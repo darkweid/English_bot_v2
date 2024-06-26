@@ -1,7 +1,5 @@
 import asyncio, logging
-from datetime import datetime, timedelta, timezone
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -10,8 +8,7 @@ from config_data.config import Config, load_config
 from handlers.user_handlers import user_router
 from handlers.admin_handlers import admin_router
 from keyboards.set_menu import set_main_menu
-from utils import send_message_to_admin
-from lexicon import MessageTexts
+from utils import send_message_to_admin, scheduler, schedule_reminders
 from db import init_db, ExerciseManager, UserManager, UserProgressManager
 
 logger = logging.getLogger(__name__)
@@ -19,7 +16,6 @@ config: Config = load_config()
 BOT_TOKEN: str = config.tg_bot.token
 ADMINS: list = config.tg_bot.admin_ids
 
-scheduler = AsyncIOScheduler()
 exercise_manager = ExerciseManager()
 user_progress_manager = UserProgressManager()
 user_manager = UserManager()
@@ -61,35 +57,9 @@ async def main():
         await send_message_to_admin(bot, text='🟥 Бот остановлен 🟥')
 
 
-async def send_reminder(bot: Bot, user_id):
-    await bot.send_message(user_id, text=MessageTexts.REMINDER.value)
-
-
-async def schedule_reminders(bot):
-    users = await user_manager.get_all_users()
-    scheduler.remove_all_jobs()
-    for user in users:
-        reminder_time = user.get('reminder_time')
-        user_tz_offset = user.get('time_zone')
-        user_id = user.get('user_id')
-        if reminder_time and user_tz_offset:
-            user_tz = timezone(timedelta(hours=int(user_tz_offset)))
-            scheduler.add_job(func=send_reminder, trigger='cron',
-                              hour=reminder_time.hour, minute=reminder_time.minute,
-                              timezone=user_tz,
-                              kwargs={'user_id': user_id, 'bot': bot})
-
-
-async def update_reminders(bot):
-    while True:
-        await schedule_reminders(bot)
-        await asyncio.sleep(60 * 60)
-
-
 async def on_startup(dispatcher: Dispatcher, bot: Bot):
     scheduler.start()
     await schedule_reminders(bot)
-    asyncio.create_task(update_reminders(bot))
 
 
 if __name__ == "__main__":
