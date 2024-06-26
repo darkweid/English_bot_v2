@@ -142,7 +142,8 @@ async def set_reminder(callback: CallbackQuery, state: FSMContext):
 async def turn_off_reminder(callback: CallbackQuery, state: FSMContext):
     await user_manager.set_reminder_time(user_id=callback.from_user.id, time=None)
     await callback.message.answer("""Напоминания выключены,
-ты всегда можешь их включить нажав команду /reminder в меню""", reply_markup=await keyboard_builder(1, BasicButtons.CLOSE))
+ты всегда можешь их включить нажав команду /reminder в меню""",
+                                  reply_markup=await keyboard_builder(1, BasicButtons.CLOSE))
 
 
 @user_router.message(StateFilter(LearningFSM.set_reminder_time))
@@ -272,8 +273,14 @@ async def choosed_subsection_testing(callback: CallbackQuery, state: FSMContext,
     if exercise:
         test, answer, id = exercise
     else:
-        await callback.message.answer(MessageTexts.ALL_EXERCISES_COMPLETED, reply_markup=await keyboard_builder(1,
-                                                                                                                choose_other_section_training=BasicButtons.CHOOSE_OTHER_SECTION))
+        first_try_count, success_count, total_exercises_count = await user_progress_manager.get_counts_completed_exercises_testing(
+            user_id=user_id, section=section,
+            subsection=subsection)
+        await callback.message.answer(f"""{MessageTexts.ALL_EXERCISES_COMPLETED.value}
+Всего заданий выполнено: <b>{success_count} из {total_exercises_count}</b>
+С первой попытки: <b>{first_try_count}</b>""", reply_markup=await keyboard_builder(1,
+                                                                                   choose_other_section_training=BasicButtons.CHOOSE_OTHER_SECTION,
+                                                                                   start_again_test=BasicButtons.START_AGAIN))
         return
     await callback.message.answer(test)
     await state.set_state(LearningFSM.testing_in_process)
@@ -287,7 +294,6 @@ async def in_process_testing(message: Message, state: FSMContext):
         'current_id'), message.from_user.id
     answer = data.get('current_answer')
     if message.text.lower() == answer.lower():
-
         first_try = await user_progress_manager.mark_exercise_completed(exercise_type='Testing',
                                                                         section=section,
                                                                         subsection=subsection,
@@ -298,10 +304,18 @@ async def in_process_testing(message: Message, state: FSMContext):
         exercise = await exercise_manager.get_random_testing_exercise(section=section,
                                                                       subsection=subsection,
                                                                       user_id=user_id)
-        if not exercise:
-            await message.answer(MessageTexts.ALL_EXERCISES_COMPLETED, reply_markup=await keyboard_builder(1,
-                                                                                                           choose_other_section_training=BasicButtons.CHOOSE_OTHER_SECTION))
 
+        if not exercise:
+            first_try_count, success_count, total_exercises_count = await user_progress_manager.get_counts_completed_exercises_testing(
+                user_id=user_id, section=section,
+                subsection=subsection)
+            await message.answer(f"""{MessageTexts.ALL_EXERCISES_COMPLETED.value}
+Всего заданий выполнено: <b>{success_count} из {total_exercises_count}</b>
+С первой попытки: <b>{first_try_count}</b>""",
+                                 reply_markup=await keyboard_builder(1, start_again_test=BasicButtons.START_AGAIN,
+                                                                     choose_other_section_training=BasicButtons.CHOOSE_OTHER_SECTION))
+            await send_message_to_admin(message.bot, text=f"""Пользователь @{message.from_user.username} выполнил тест
+<b>{section} – {subsection}</b>\nС первой попытки <b>{first_try_count} из {success_count}</b>""")
         else:
             test, answer, id = exercise
             await update_state_data(state, current_test=test, current_answer=answer.strip(), current_id=id)
