@@ -43,7 +43,7 @@ async def main():
         await user_progress_manager.init_tables()
         await user_manager.init_tables()
 
-        bot: bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+        bot: Bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
         dp: Dispatcher = Dispatcher(storage=storage)
 
         dp.include_router(admin_router)
