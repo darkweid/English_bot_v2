@@ -347,6 +347,13 @@ class UserProgressManager(DatabaseManager):
 
                 return users_with_ranks
 
+    async def delete_progress_by_subsection(self, user_id, section, subsection):
+        async with self.db as session:
+            async with session.begin():
+                await session.execute(delete(UserProgress).where(UserProgress.exercise_section == section,
+                                                                    UserProgress.exercise_subsection == subsection,
+                                                                    UserProgress.user_id == user_id))
+
 
 class UserManager(DatabaseManager):
     async def init_tables(self):
