@@ -76,6 +76,7 @@ async def stats_user_command(message: Message, state: FSMContext):
 @user_router.callback_query(F.data == 'stats_last_week')
 @user_router.callback_query(F.data == 'stats_last_month')
 async def see_stats_user(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     cbdata = callback.data
     user_id = callback.from_user.id
     if cbdata == 'stats_today':
@@ -116,6 +117,7 @@ async def stats_user_command(message: Message, state: FSMContext):
 
 @user_router.callback_query(F.data == BasicButtons.CHANGE_TIME_ZONE.value)
 async def choose_timezone(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     await callback.message.answer(MessageTexts.CHOOSE_TIMEZONE.value,
                                   reply_markup=await keyboard_builder(4, BasicButtons.CLOSE, args_go_first=False,
                                                                       **time_zones))
@@ -123,6 +125,7 @@ async def choose_timezone(callback: CallbackQuery, state: FSMContext):
 
 @user_router.callback_query(F.data.startswith('tz_UTC'))
 async def set_timezone(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     await callback.message.edit_text(f"""Установлен часовой пояс {time_zones.get(callback.data)}
 Теперь ты можешь установить время напоминаний""",
                                      reply_markup=await keyboard_builder(1, BasicButtons.CHANGE_REMINDER_TIME,
@@ -132,6 +135,7 @@ async def set_timezone(callback: CallbackQuery, state: FSMContext):
 
 @user_router.callback_query(F.data == BasicButtons.CHANGE_REMINDER_TIME.value)
 async def set_reminder(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     await callback.message.answer(f"""В какое время тебе напоминать заниматься?
 Введи время в формате <b>HH:MM</b>
 Например - 10:35""", reply_markup=await keyboard_builder(1, BasicButtons.CLOSE))
@@ -140,6 +144,7 @@ async def set_reminder(callback: CallbackQuery, state: FSMContext):
 
 @user_router.callback_query(F.data == BasicButtons.TURN_OFF_REMINDER.value)
 async def turn_off_reminder(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     await user_manager.set_reminder_time(user_id=callback.from_user.id, time=None)
     await callback.message.answer("""Напоминания выключены,
 ты всегда можешь их включить нажав команду /reminder в меню""",
@@ -158,6 +163,7 @@ async def set_reminder_time(message: Message, state: FSMContext):
 
 @user_router.callback_query(F.data == BasicButtons.BACK.value, StateFilter(LearningFSM.testing_choosing_section))
 async def main_menu_existing_user(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     await callback.message.edit_text(MessageTexts.WELCOME_EXISTING_USER.value,
                                      reply_markup=await keyboard_builder(1,
                                                                          *[button.value for button in MainMenuButtons]))
@@ -223,8 +229,8 @@ async def start_testing(callback: CallbackQuery, state: FSMContext):  # выбо
 @user_router.callback_query(StateFilter(LearningFSM.testing_choosing_section))  # выбор ПОДраздела для прохождения теста
 async def choosing_section_testing(callback: CallbackQuery, state: FSMContext):
     section = testing_section_mapping.get(callback.data)
+    await callback.answer()
     if section is None:
-        await callback.answer()
         await callback.message.edit_text(MessageTexts.ERROR)
         await state.set_state(LearningFSM.default)
         return
@@ -336,6 +342,7 @@ async def in_process_testing(message: Message, state: FSMContext):
 
 @user_router.callback_query((F.data == 'start_again_test'))
 async def start_again_testing(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     await callback.message.edit_text(MessageTexts.ARE_YOU_SURE_START_AGAIN.value,
                                      reply_markup=await keyboard_builder(1, BasicButtons.CLOSE, args_go_first=False,
                                                                          sure_start_again_test=BasicButtons.START_AGAIN))
@@ -343,6 +350,7 @@ async def start_again_testing(callback: CallbackQuery, state: FSMContext):
 
 @user_router.callback_query((F.data == 'sure_start_again_test'))
 async def start_again_testing(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     data = await state.get_data()
     subsection, section, user_id = data.get('subsection'), data.get('section'), callback.from_user.id
     await user_progress_manager.delete_progress_by_subsection(user_id=user_id, section=section, subsection=subsection)
@@ -358,6 +366,7 @@ async def see_answer_testing(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(f'Правильный ответ: {answer.capitalize()}')
     await asyncio.sleep(3)
     await choosed_subsection_testing(callback, state, prev_message_delete=False)
+
 
 
 @user_router.message(Command(commands=["info"]))
