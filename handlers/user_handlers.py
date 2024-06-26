@@ -334,6 +334,22 @@ async def in_process_testing(message: Message, state: FSMContext):
                                                             exercise_id=exercise_id, user_id=user_id, success=False)
 
 
+@user_router.callback_query((F.data == 'start_again_test'))
+async def start_again_testing(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(MessageTexts.ARE_YOU_SURE_START_AGAIN.value,
+                                     reply_markup=await keyboard_builder(1, BasicButtons.CLOSE, args_go_first=False,
+                                                                         sure_start_again_test=BasicButtons.START_AGAIN))
+
+
+@user_router.callback_query((F.data == 'sure_start_again_test'))
+async def start_again_testing(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    subsection, section, user_id = data.get('subsection'), data.get('section'), callback.from_user.id
+    await user_progress_manager.delete_progress_by_subsection(user_id=user_id, section=section, subsection=subsection)
+    await callback.message.edit_text(f'Прогресс по тесту {section} – {subsection} сброшен')
+    await choosed_subsection_testing(callback, state, prev_message_delete=False)
+
+
 @user_router.callback_query((F.data == 'see_answer_testing'))  # Подсказка в тестировании
 async def see_answer_testing(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
