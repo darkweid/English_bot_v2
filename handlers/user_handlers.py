@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.types import LinkPreviewOptions, CallbackQuery, Message, ReplyKeyboardRemove
 from states import LearningFSM
-from utils import send_message_to_admin, update_state_data, time_zones
+from utils import send_message_to_admin, update_state_data, time_zones, schedule_reminders
 from lexicon import *
 from db import *
 from keyboards import *
@@ -131,6 +131,7 @@ async def set_timezone(callback: CallbackQuery, state: FSMContext):
                                      reply_markup=await keyboard_builder(1, BasicButtons.CHANGE_REMINDER_TIME,
                                                                          BasicButtons.CLOSE))
     await user_manager.set_timezone(user_id=callback.from_user.id, timezone=callback.data.split('|')[1])
+    await schedule_reminders(callback.bot)
 
 
 @user_router.callback_query(F.data == BasicButtons.CHANGE_REMINDER_TIME.value)
@@ -146,6 +147,7 @@ async def set_reminder(callback: CallbackQuery, state: FSMContext):
 async def turn_off_reminder(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await user_manager.set_reminder_time(user_id=callback.from_user.id, time=None)
+    await schedule_reminders(callback.bot)
     await callback.message.answer("""Напоминания выключены,
 ты всегда можешь их включить нажав команду /reminder в меню""",
                                   reply_markup=await keyboard_builder(1, BasicButtons.CLOSE))
@@ -156,6 +158,7 @@ async def set_reminder_time(message: Message, state: FSMContext):
     try:
         time = datetime.strptime(message.text, "%H:%M").time()
         await user_manager.set_reminder_time(user_id=message.from_user.id, time=time)
+        await schedule_reminders(message.bot)
         await message.answer(f'Отлично, буду напоминать тебе заниматься каждый день в {time.strftime("%H:%M")}')
     except Exception as e:
         await message.answer(str(e))
