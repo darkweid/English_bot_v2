@@ -6,9 +6,10 @@ from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, InlineKeyboardMarkup
 from states import AdminFSM, LearningFSM
 from db import ExerciseManager, UserProgressManager, UserManager
+from datetime import datetime
 from keyboards import *
 from lexicon import *
-from utils import message_to_admin, update_state_data
+from utils import message_to_admin, update_state_data, delete_scheduled_broadcasts, schedule_broadcast
 
 config: Config = load_config()
 BOT_TOKEN: str = config.tg_bot.token
@@ -36,7 +37,8 @@ async def admin_command(message: Message, state: FSMContext):
                                                                  AdminMenuButtons.SEE_ACTIVITY_DAY,
                                                                  AdminMenuButtons.SEE_ACTIVITY_WEEK,
                                                                  AdminMenuButtons.SEE_ACTIVITY_MONTH,
-                                                                 AdminMenuButtons.USERS, AdminMenuButtons.EXIT))
+                                                                 AdminMenuButtons.USERS, AdminMenuButtons.BROADCAST,
+                                                                 AdminMenuButtons.EXIT))
         await state.set_state(AdminFSM.default)
     else:
         await message.answer('🚫 Вам сюда нельзя 🚫')
@@ -85,7 +87,10 @@ async def admin_exercises(callback: CallbackQuery, state: FSMContext):
 @admin_router.callback_query((F.data == 'tests_admin'))
 async def admin_start_testing(callback: CallbackQuery, state: FSMContext):  # выбор раздела для прохождения тесте
     await callback.answer()
-    await callback.message.edit_text('Выбери раздел тестов:', reply_markup=choose_section_testing_keyboard)
+    await callback.message.edit_text('Выбери раздел тестов:',
+                                     reply_markup=await keyboard_builder(1, *[button.value for button in
+                                                                              TestingSections], BasicButtons.BACK,
+                                                                         BasicButtons.MAIN_MENU))
     await state.set_state(AdminFSM.choose_section_testing)
 
 
@@ -315,6 +320,61 @@ async def admin_activity(callback: CallbackQuery, state: FSMContext):
     info = await user_progress_manager.get_activity(interval)
     await callback.message.answer(info,
                                   reply_markup=await keyboard_builder(1, close_message_admin=AdminMenuButtons.CLOSE))
+
+
+@admin_router.callback_query((F.data == AdminMenuButtons.BROADCAST.value))
+async def start_broadcast(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(text=AdminMenuButtons.BROADCAST.value,
+                                     reply_markup=await keyboard_builder(1,
+                                                                         AdminMenuButtons.ADD_BROADCAST,
+                                                                         AdminMenuButtons.MAIN_MENU,
+                                                                         AdminMenuButtons.CLOSE, args_go_first=False,
+                                                                         del_scheduled_broadcast=AdminMenuButtons.DEL_BROADCASTS))
+
+
+@admin_router.callback_query((F.data == 'del_scheduled_broadcast'))
+async def delete_broadcast(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.edit_text('Ты уверен, что нужно удалить все запланированные рассылки?',
+                                     reply_markup=await keyboard_builder(1, AdminMenuButtons.CLOSE,
+                                                                         sure_delete_broadcast=AdminMenuButtons.YES))
+
+
+@admin_router.callback_query((F.data == 'sure_delete_broadcast'))
+async def sure_delete_broadcast(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await delete_scheduled_broadcasts(callback.bot)
+    await callback.message.edit_text('Все запланированные рассылки удалены',
+                                     reply_markup=await keyboard_builder(1, AdminMenuButtons.CLOSE))
+
+
+@admin_router.callback_query((F.data == AdminMenuButtons.ADD_BROADCAST.value))
+async def add_broadcast_date_time(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.edit_text("""Введи дату и время в формате\nHH:MM dd.mm.yyyy\nЧасовой пояс UTC+3(Мск)""")
+    await state.set_state(AdminFSM.broadcasting_set_date_time)
+
+
+@admin_router.message(StateFilter(AdminFSM.broadcasting_set_date_time))
+async def adding_broadcast_date_time(message: Message, state: FSMContext):
+    try:
+        datetime.strptime(message.text, '%H:%M %d.%m.%Y')
+        await state.update_data(broadcast_date_time=message.text)
+        await state.set_state(AdminFSM.broadcasting_set_text)
+        await message.answer(
+            f'Хорошо, я сделаю рассылку\n{message.text}\n\nТеперь отправь мне текст, который нужно будет разослать')
+    except Exception as e:
+        await message.answer('Что-то пошло не так, введи еще раз в формате \nHH:MM dd.mm.yyyy')
+        await message.answer(str(e))
+
+
+@admin_router.message(StateFilter(AdminFSM.broadcasting_set_text))
+async def adding_broadcast_text(message: Message, state: FSMContext):
+    data = await  state.get_data()
+    date_time = datetime.strptime(data.get('broadcast_date_time'), '%H:%M %d.%m.%Y')
+    text = message.text
+    await schedule_broadcast(date_time=date_time, text=text)
+    await message.answer('Отлично. Рассылка будет отправлена в указанное время')
 
 
 async def send_long_message(callback, text, max_length=4000, **kwargs):
