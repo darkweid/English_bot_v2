@@ -3,8 +3,7 @@ import asyncio, logging
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 from config_data.config import Config, load_config
-from handlers.user_handlers import user_router
-from handlers.admin_handlers import admin_router
+from handlers import *
 from keyboards.set_menu import set_main_menu
 from utils import send_message_to_admin, scheduler, schedule_reminders, init_bot_instance, get_bot_instance
 from db import init_db, ExerciseManager, UserManager, UserProgressManager
@@ -41,8 +40,19 @@ async def main():
         bot: Bot = await get_bot_instance()
         dp: Dispatcher = Dispatcher(storage=storage)
 
+        dp.include_router(user_commands_router)
         dp.include_router(admin_router)
-        dp.include_router(user_router)
+
+        dp.include_router(user_navigation_router)
+        dp.include_router(user_stats_router)
+        dp.include_router(user_reminder_router)
+        dp.include_router(user_testing_router)
+        dp.include_router(user_irr_verbs_router)
+        dp.include_router(user_new_words_router)
+        dp.include_router(fallback_router)
+
+
+
         await set_main_menu(bot)
         await bot.delete_webhook(drop_pending_updates=True)
         await send_message_to_admin(bot, text='🟢 Бот запущен 🟢')
