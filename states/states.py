@@ -18,6 +18,7 @@ class LearningFSM(StatesGroup):
 
 class AdminFSM(StatesGroup):
     default = State()  # Начальное состояние
+
     choose_section_testing = State()
     choose_subsection_testing = State()
     choose_management_action_testing = State()
@@ -28,6 +29,8 @@ class AdminFSM(StatesGroup):
     ready_to_delete_exercise_testing = State()
 
     see_user_info = State()
-    manage_users = State()  # Управление пользователями
-    view_reports = State()  # Просмотр отчетов
-    configure_settings = State()  # Настройка параметров
+
+    broadcasting_set_date_time = State()
+    broadcasting_set_text = State()
+
+
