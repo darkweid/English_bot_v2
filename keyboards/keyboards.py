@@ -1,6 +1,5 @@
 from typing import Union
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, BotCommand, URLInputFile
-# from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, ReplyKeyboardRemove, ContentType
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from lexicon import *
 
@@ -9,8 +8,9 @@ ConstructionsSections, PhrasesAndWordsSections, PrepositionsSections, ModalVerbs
 ConditionalsSections]
 
 
+# dict[str, ButtonEnumType]
 async def keyboard_builder(width: int, *args: ButtonEnumType, args_go_first: bool = True,
-                           **kwargs: dict[str, ButtonEnumType]) -> InlineKeyboardMarkup:
+                           **kwargs: ButtonEnumType) -> InlineKeyboardMarkup:
     kb_builder: InlineKeyboardBuilder = InlineKeyboardBuilder()
     buttons: list[InlineKeyboardButton] = []
     if args_go_first:
