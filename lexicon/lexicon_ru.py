@@ -176,12 +176,13 @@ class AdminMenuButtons(Enum):
     SEE_ACTIVITY_WEEK = 'Посмотреть активность за неделю'
     SEE_ACTIVITY_MONTH = 'Посмотреть активность за месяц'
 
-    SEE_CHART = 'Посмотреть рейтинг пользователей'
 
     USERS = 'Пользователи'
-    SEE_USERS = 'Посмотреть пользователей'
     DEL_USER = 'Удалить пользователя'
 
+    BROADCAST = 'Рассылка пользователям'
+    DEL_BROADCASTS = 'Удалить все запланированные рассылки'
+    ADD_BROADCAST = 'Запланировать рассылку'
 
 list_right_answers = [
     'You are right!', 'Awesome!', 'Great!', 'Good job',
