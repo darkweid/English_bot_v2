@@ -1,14 +1,12 @@
 import asyncio, logging
 
 from aiogram import Bot, Dispatcher
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 from config_data.config import Config, load_config
 from handlers.user_handlers import user_router
 from handlers.admin_handlers import admin_router
 from keyboards.set_menu import set_main_menu
-from utils import send_message_to_admin, scheduler, schedule_reminders
+from utils import send_message_to_admin, scheduler, schedule_reminders, init_bot_instance, get_bot_instance
 from db import init_db, ExerciseManager, UserManager, UserProgressManager
 
 logger = logging.getLogger(__name__)
@@ -38,8 +36,9 @@ async def main():
         await exercise_manager.init_tables()
         await user_progress_manager.init_tables()
         await user_manager.init_tables()
+        await init_bot_instance(token=BOT_TOKEN)
 
-        bot: Bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+        bot: Bot = await get_bot_instance()
         dp: Dispatcher = Dispatcher(storage=storage)
 
         dp.include_router(admin_router)
@@ -47,8 +46,8 @@ async def main():
         await set_main_menu(bot)
         await bot.delete_webhook(drop_pending_updates=True)
         await send_message_to_admin(bot, text='🟢 Бот запущен 🟢')
-        await on_startup(dp, bot)
-        await dp.start_polling(bot, )
+        await on_startup()
+        await dp.start_polling(bot)
     except Exception as e:
         logger.exception("Ошибка: %s", str(e))
 
@@ -57,9 +56,9 @@ async def main():
         await send_message_to_admin(bot, text='🟥 Бот остановлен 🟥')
 
 
-async def on_startup(dispatcher: Dispatcher, bot: Bot):
+async def on_startup():
     scheduler.start()
-    await schedule_reminders(bot)
+    await schedule_reminders()
 
 
 if __name__ == "__main__":
