@@ -45,7 +45,7 @@ async def start_new_words(callback: CallbackQuery, state: FSMContext):
 async def learn_new_words(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await callback.message.edit_text('Здесь будут даваться слова для изучения на сегодня')
-    await state.set_state(WordsLearningFSM.in_process.new_words_learning)
+    await state.set_state(WordsLearningFSM.in_process)
 
 
 @user_new_words_router.callback_query(F.data == 'add_new_words')

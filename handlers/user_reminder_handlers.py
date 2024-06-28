@@ -5,7 +5,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message
-from states import LearningFSM
+from states import UserFSM
 from utils import time_zones, schedule_reminders
 from lexicon import BasicButtons, MessageTexts
 from db import UserManager
@@ -68,7 +68,7 @@ async def set_reminder(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(f"""В какое время тебе напоминать заниматься?
 Введи время в формате <b>HH:MM</b>
 Например - 10:35""", reply_markup=await keyboard_builder(1, BasicButtons.CLOSE))
-    await state.set_state(LearningFSM.set_reminder_time)
+    await state.set_state(UserFSM.set_reminder_time)
 
 
 @user_reminder_router.callback_query(F.data == BasicButtons.TURN_OFF_REMINDER.value)
@@ -81,7 +81,7 @@ async def turn_off_reminder(callback: CallbackQuery):
                                   reply_markup=await keyboard_builder(1, BasicButtons.CLOSE))
 
 
-@user_reminder_router.message(StateFilter(LearningFSM.set_reminder_time))
+@user_reminder_router.message(StateFilter(UserFSM.set_reminder_time))
 async def set_reminder_time(message: Message):
     try:
         time = datetime.strptime(message.text, "%H:%M").time()

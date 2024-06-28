@@ -4,7 +4,7 @@ from aiogram import Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
-from states import LearningFSM
+from states import TestingFSM
 from utils import send_message_to_admin, update_state_data
 from lexicon import (MessageTexts, BasicButtons, TestingSections, MainMenuButtons, list_right_answers,
                      testing_section_mapping)
@@ -41,7 +41,7 @@ async def start_testing(callback: CallbackQuery, state: FSMContext):
                                   reply_markup=await keyboard_builder(1, *[button.value for button in
                                                                            TestingSections],
                                                                       BasicButtons.MAIN_MENU))
-    await state.set_state(LearningFSM.testing_choosing_section)
+    await state.set_state(TestingFSM.selecting_section)
 
 
 @user_testing_router.callback_query((F.data == 'choose_other_section_training'))
@@ -51,40 +51,40 @@ async def start_testing(callback: CallbackQuery, state: FSMContext):
                                      reply_markup=await keyboard_builder(1, *[button.value for button in
                                                                               TestingSections],
                                                                          BasicButtons.MAIN_MENU))
-    await state.set_state(LearningFSM.testing_choosing_section)
+    await state.set_state(TestingFSM.selecting_section)
 
 
 @user_testing_router.callback_query((F.data == BasicButtons.BACK.value),
-                                    StateFilter(LearningFSM.testing_choosing_subsection))
+                                    StateFilter(TestingFSM.selecting_subsection))
 async def start_testing(callback: CallbackQuery, state: FSMContext):  # выбор раздела для прохождения тесте
     await callback.answer()
     await callback.message.edit_text(MessageTexts.CHOOSE_SECTION.value,
                                      reply_markup=await keyboard_builder(1, *[button.value for button in
                                                                               TestingSections],
                                                                          BasicButtons.MAIN_MENU))
-    await state.set_state(LearningFSM.testing_choosing_section)
+    await state.set_state(TestingFSM.selecting_section)
 
 
 @user_testing_router.callback_query(
-    StateFilter(LearningFSM.testing_choosing_section))  # выбор подраздела для прохождения теста
+    StateFilter(TestingFSM.selecting_section))  # выбор подраздела для прохождения теста
 async def choosing_section_testing(callback: CallbackQuery, state: FSMContext):
     section = testing_section_mapping.get(callback.data)
     await callback.answer()
     if section is None:
         await callback.message.edit_text(MessageTexts.ERROR.value)
-        await state.set_state(LearningFSM.default)
+        await state.set_state(TestingFSM.default)
         return
 
     await callback.message.edit_text(
         MessageTexts.CHOOSE_SUBSECTION_TEST.value,
         reply_markup=await keyboard_builder(1, *[button.value for button in section], BasicButtons.BACK,
                                             BasicButtons.MAIN_MENU))
-    await state.set_state(LearningFSM.testing_choosing_subsection)
+    await state.set_state(TestingFSM.selecting_subsection)
     await update_state_data(state, section=callback.data, subsection=None)
 
 
 @user_testing_router.callback_query(
-    StateFilter(LearningFSM.testing_choosing_subsection))  # подраздел выбран, получен в callback
+    StateFilter(TestingFSM.selecting_subsection))  # подраздел выбран, получен в callback
 async def choosing_subsection_testing(callback: CallbackQuery, state: FSMContext):
     subsection = callback.data
     data = await state.get_data()
@@ -97,7 +97,7 @@ async def choosing_subsection_testing(callback: CallbackQuery, state: FSMContext
 Готов проходить?""", reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
                                                          ready_for_test=BasicButtons.READY))
         await update_state_data(state, subsection=subsection)
-        await state.set_state(LearningFSM.testing_choosed_subsection)
+        await state.set_state(TestingFSM.selected_subsection)
     elif count_exercises == 0:
         await callback.message.edit_text(
             MessageTexts.EMPTY_SECTION.value,
@@ -131,11 +131,11 @@ async def chose_subsection_testing(callback: CallbackQuery, state: FSMContext, p
                                                                           start_again_test=BasicButtons.START_AGAIN))
         return
     await callback.message.answer(test)
-    await state.set_state(LearningFSM.testing_in_process)
+    await state.set_state(TestingFSM.in_process)
     await update_state_data(state, current_test=test, current_answer=answer.strip(), current_id=id_exercise)
 
 
-@user_testing_router.message(StateFilter(LearningFSM.testing_in_process))  # В процессе тестирования
+@user_testing_router.message(StateFilter(TestingFSM.in_process))  # В процессе тестирования
 async def in_process_testing(message: Message, state: FSMContext):
     data = await state.get_data()
     section, subsection, exercise_id, user_id = data.get('section'), data.get('subsection'), data.get(

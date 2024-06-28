@@ -4,7 +4,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, InlineKeyboardMarkup
-from states import AdminFSM, LearningFSM
+from states import AdminFSM, UserFSM
 from db import ExerciseManager, UserProgressManager, UserManager
 from datetime import datetime
 from keyboards import *
@@ -62,7 +62,7 @@ async def admin_exit(callback: CallbackQuery, state: FSMContext):
     await callback.answer('До скорых встреч 👋')
     await update_state_data(state, admin_section=None, admin_subsection=None, index_testing_edit=None,
                             index_testing_delete=None)
-    await state.set_state(LearningFSM.default)
+    await state.set_state(UserFSM.default)
 
 
 @admin_router.callback_query((F.data == 'stats_users_table_close'))  # close without change state
@@ -100,7 +100,7 @@ async def admin_choosing_section_testing(callback: CallbackQuery, state: FSMCont
     if section is None:
         await callback.answer()
         await callback.message.edit_text(MessageTexts.ERROR)
-        await state.set_state(LearningFSM.default)
+        await state.set_state(UserFSM.default)
         return
 
     await callback.message.edit_text(

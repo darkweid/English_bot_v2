@@ -1,19 +1,35 @@
 from aiogram.filters.state import State, StatesGroup
 
 
-class LearningFSM(StatesGroup):
+class UserFSM(StatesGroup):
     default = State()
-    choose_type_of_exercise = State()
-    testing = State()  # Пользователь проходит тестирование
-    testing_choosing_section = State()  # Пользователь выбирает раздел в тестах
-    testing_choosing_subsection = State()  # Пользователь выбирает подраздел в тестах
-    testing_choosed_subsection = State()    # Пользователь выбрал подраздел в тестах
-    testing_in_process = State()
-
-    verbs_learning = State()  # Пользователь изучает неправильные глаголы
-    new_words_learning = State()  # Пользователь изучает новые слова
-    existing_user = State()# Состояние для существующих пользователей (без приветственного сообщения)
+    existing_user = State()
     set_reminder_time = State()
+
+
+class TestingFSM(StatesGroup):
+    default = State()  # Пользователь проходит тестирование
+    selecting_section = State()  # Пользователь выбирает раздел в тестах
+    selecting_subsection = State()  # Пользователь выбирает подраздел в тестах
+    selected_subsection = State()  # Пользователь выбрал подраздел в тестах
+    in_process = State()
+
+
+class WordsLearningFSM(StatesGroup):
+    default = State()  # Пользователь изучает новые слова
+    add_words_to_learn = State()  # Пользователь добавляет слова для изучения
+    selecting_section = State()  # Пользователь выбирает раздел
+    selecting_subsection = State()  # Пользователь выбирает подраздел
+    selected_subsection = State()  # Пользователь выбрал подраздел
+    in_process = State()
+
+
+class IrrVerbsLearningFSM(StatesGroup):
+    pass
+
+
+class SentencesForTranslationFSM(StatesGroup):
+    pass
 
 
 class AdminFSM(StatesGroup):
@@ -32,5 +48,3 @@ class AdminFSM(StatesGroup):
 
     broadcasting_set_date_time = State()
     broadcasting_set_text = State()
-
-

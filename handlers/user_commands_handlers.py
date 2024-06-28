@@ -3,7 +3,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.types import LinkPreviewOptions, Message
-from states import LearningFSM
+from states import UserFSM
 from utils import send_message_to_admin
 from lexicon import BasicButtons, MainMenuButtons, MessageTexts
 from db import UserManager
@@ -35,7 +35,7 @@ async def process_start_command(message: Message, state: FSMContext):
                          reply_markup=await keyboard_builder(1, *[button.value for button in MainMenuButtons]))
     await send_message_to_admin(message.bot, f"""Зарегистрирован новый пользователь.
 Имя: {message.from_user.full_name}\nТелеграм: @{message.from_user.username}\n""")
-    await state.set_state(LearningFSM.existing_user)
+    await state.set_state(UserFSM.existing_user)
 
 
 @user_commands_router.message(Command(commands=['main_menu']),
@@ -48,11 +48,11 @@ async def process_start_command_existing_user(message: Message, state: FSMContex
     await user_manager.add_user(user_id, full_name, tg_login)
     await message.answer(MessageTexts.WELCOME_EXISTING_USER.value,
                          reply_markup=await keyboard_builder(1, *[button.value for button in MainMenuButtons]))
-    await state.set_state(LearningFSM.choose_type_of_exercise)
+    await state.set_state(UserFSM.default)
 
 
 @user_commands_router.message(Command(commands=["info"]))
 async def info_command(message: Message, state: FSMContext):
-    await state.set_state(LearningFSM.default)
+    await state.set_state(UserFSM.default)
     await message.answer(MessageTexts.INFO_RULES.value,
                          reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU))
