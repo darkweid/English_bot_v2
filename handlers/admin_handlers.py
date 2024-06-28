@@ -2,8 +2,7 @@ from aiogram import Router, F
 from config_data.config import Config, load_config
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import default_state
-from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, InlineKeyboardMarkup
+from aiogram.types import CallbackQuery, Message
 from states import AdminFSM, UserFSM
 from db import ExerciseManager, UserProgressManager, UserManager
 from datetime import datetime
@@ -22,7 +21,7 @@ user_manager: UserManager = UserManager()
 
 
 @admin_router.message(Command(commands=["test"]))
-async def admin_command(message: Message, state: FSMContext):
+async def admin_command(message: Message):
     for user in (await user_manager.get_all_users()):
         await message.answer(str(user))
     await user_progress_manager.get_completed_exercises_testing(user_id=message.from_user.id, section='Tenses',
@@ -72,7 +71,7 @@ async def close_message_without_state_changes(callback: CallbackQuery, state: FS
 
 
 @admin_router.callback_query((F.data == AdminMenuButtons.EXERCISES.value), StateFilter(AdminFSM.default))
-@admin_router.callback_query((F.data == BasicButtons.BACK.value), StateFilter(AdminFSM.choose_section_testing))
+@admin_router.callback_query((F.data == BasicButtons.BACK.value), StateFilter(AdminFSM.select_section_testing))
 async def admin_exercises(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text('Выбери группу упражнений:',
                                      reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
@@ -83,7 +82,7 @@ async def admin_exercises(callback: CallbackQuery, state: FSMContext):
                                                                          irr_verbs_admin=AdminMenuButtons.IRR_VERBS))
 
 
-@admin_router.callback_query((F.data == BasicButtons.BACK.value), StateFilter(AdminFSM.choose_subsection_testing))
+@admin_router.callback_query((F.data == BasicButtons.BACK.value), StateFilter(AdminFSM.select_subsection_testing))
 @admin_router.callback_query((F.data == 'tests_admin'))
 async def admin_start_testing(callback: CallbackQuery, state: FSMContext):  # выбор раздела для прохождения тесте
     await callback.answer()
@@ -91,10 +90,10 @@ async def admin_start_testing(callback: CallbackQuery, state: FSMContext):  # в
                                      reply_markup=await keyboard_builder(1, *[button.value for button in
                                                                               TestingSections], BasicButtons.BACK,
                                                                          BasicButtons.MAIN_MENU))
-    await state.set_state(AdminFSM.choose_section_testing)
+    await state.set_state(AdminFSM.select_section_testing)
 
 
-@admin_router.callback_query(StateFilter(AdminFSM.choose_section_testing))  # выбор ПОДраздела теста
+@admin_router.callback_query(StateFilter(AdminFSM.select_section_testing))  # выбор ПОДраздела теста
 async def admin_choosing_section_testing(callback: CallbackQuery, state: FSMContext):
     section = testing_section_mapping.get(callback.data)
     if section is None:
@@ -107,13 +106,13 @@ async def admin_choosing_section_testing(callback: CallbackQuery, state: FSMCont
         MessageTexts.CHOOSE_SUBSECTION_TEST.value,
         reply_markup=await keyboard_builder(1, *[button.value for button in section], BasicButtons.BACK,
                                             BasicButtons.MAIN_MENU))
-    await state.set_state(AdminFSM.choose_subsection_testing)
+    await state.set_state(AdminFSM.select_subsection_testing)
     await update_state_data(state, admin_section=callback.data, admin_subsection=None)
     print(await state.get_data())
 
 
 @admin_router.callback_query(
-    StateFilter(AdminFSM.choose_subsection_testing))  # подраздел выбран, получен в callback
+    StateFilter(AdminFSM.select_subsection_testing))  # подраздел выбран, получен в callback
 async def admin_choosing_subsection_testing(callback: CallbackQuery, state: FSMContext):
     admin_subsection = callback.data
     data = await state.get_data()
@@ -129,7 +128,7 @@ async def admin_choosing_subsection_testing(callback: CallbackQuery, state: FSMC
                                             AdminMenuButtons.EXIT))
     await update_state_data(state, admin_subsection=admin_subsection)
     print(await state.get_data())
-    await state.set_state(AdminFSM.choose_management_action_testing)
+    await state.set_state(AdminFSM.select_management_action_testing)
 
 
 @admin_router.callback_query(F.data == AdminMenuButtons.SEE_EXERCISES_TESTING.value)

@@ -33,18 +33,25 @@ class SentencesForTranslationFSM(StatesGroup):
 
 
 class AdminFSM(StatesGroup):
-    default = State()  # Начальное состояние
+    default = State()
 
-    choose_section_testing = State()
-    choose_subsection_testing = State()
-    choose_management_action_testing = State()
+    #Testing
+    select_section_testing = State()
+    select_subsection_testing = State()
+    select_management_action_testing = State()
     adding_exercise_testing = State()
     deleting_exercise_testing = State()
     editing_exercise_testing = State()
     ready_to_edit_exercise_testing = State()
     ready_to_delete_exercise_testing = State()
 
+    #Stats
     see_user_info = State()
 
+    #Broadcasting
     broadcasting_set_date_time = State()
     broadcasting_set_text = State()
+
+    #New_words
+
+    #Irr_verbs
