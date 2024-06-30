@@ -23,6 +23,7 @@ class IrregularVerb(Base):
 class NewWord(Base):
     __tablename__ = 'new_words'
     section = Column(String, primary_key=True, nullable=False)
+    subsection = Column(String, primary_key=True, nullable=False)
     id = Column(Integer, primary_key=True, nullable=False)
     russian = Column(String, nullable=False)
     english = Column(String, nullable=False)
