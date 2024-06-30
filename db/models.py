@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Time, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Date, DateTime, Time, ForeignKey, Boolean, Index
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -27,6 +27,23 @@ class NewWord(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     russian = Column(String, nullable=False)
     english = Column(String, nullable=False)
+
+
+class UserProgressWordsLearning(Base):
+    __tablename__ = 'user_progress_words_learning'
+    user_id = Column(Integer, primary_key=True, nullable=False, index=True)
+    section = Column(Integer, primary_key=True, nullable=False, index=True)
+    subsection = Column(Integer, primary_key=True, nullable=False, index=True)
+    id = Column(Integer, primary_key=True, nullable=False)
+    attempts = Column(Integer, default=1, nullable=False)
+    success = Column(Integer, default=0, nullable=False)
+    level_SR = Column(Integer, default=0, nullable=False)
+    next_review_date = Column(Date, nullable=False)
+    date = Column(Date, nullable=False)
+
+
+Index('ix_user_section', UserProgressWordsLearning.user_id, UserProgressWordsLearning.section,
+      UserProgressWordsLearning.subsection)
 
 
 class UserProgress(Base):
