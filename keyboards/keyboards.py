@@ -1,3 +1,4 @@
+import random
 from typing import Union
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -36,6 +37,23 @@ async def keyboard_builder(width: int, *args: ButtonEnumType, args_go_first: boo
                 buttons.append(InlineKeyboardButton(
                     text=button,
                     callback_data=button))
+    kb_builder.row(*buttons, width=width)
+    return kb_builder.as_markup()
+
+
+async def keyboard_builder_words_learning(width: int, correct: str, options: list[str]) -> InlineKeyboardMarkup:
+    kb_builder = InlineKeyboardBuilder()
+    buttons = []
+
+    for option in options:
+        buttons.append(
+            InlineKeyboardButton(
+                text=option,
+                callback_data=str(option == correct)
+            )
+        )
+
+    random.shuffle(buttons)
     kb_builder.row(*buttons, width=width)
     return kb_builder.as_markup()
 
