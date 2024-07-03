@@ -1,11 +1,23 @@
 from time import strftime
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.future import select
-from sqlalchemy import func, update, delete, not_, desc
-from db.models import Base, TestingExercise, IrregularVerb, NewWord, UserProgress, User
+from sqlalchemy import func, update, delete, not_, desc, distinct
+from sqlalchemy.orm import joinedload
+
+from db.models import Base, TestingExercise, IrregularVerb, NewWords, UserProgress, User, UserWordsLearning
 from db.init import engine
 from datetime import datetime, date, timedelta
 import random
+
+# import logging
+#
+# logging.basicConfig()
+# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+# logging.getLogger('sqlalchemy.dialects').setLevel(logging.INFO)
+# logging.getLogger('sqlalchemy.pool').setLevel(logging.INFO)
+# logging.getLogger('sqlalchemy.orm').setLevel(logging.INFO)
+# logging.getLogger('sqlalchemy.dialects.sqlite').setLevel(logging.INFO)
+# logging.getLogger('sqlalchemy.orm.mapper').setLevel(logging.INFO)
 
 SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -40,17 +52,6 @@ class ExerciseManager(DatabaseManager):
             async with session.begin():
                 verb = IrregularVerb(russian=russian, english=english)
                 session.add(verb)
-
-    async def add_new_word(self, section, russian, english):
-        async with self.db as session:
-            async with session.begin():
-                # Найти максимальный ID для данного раздела
-                max_id = await session.execute(select(func.max(NewWord.id)).filter_by(section=section))
-                max_id = max_id.scalar() or 0
-                next_id = max_id + 1
-
-                word = NewWord(section=section, id=next_id, russian=russian, english=english)
-                session.add(word)
 
     async def get_testing_exercises(self, subsection: str):
         async with self.db as session:
@@ -103,11 +104,6 @@ class ExerciseManager(DatabaseManager):
             result = await session.execute(select(IrregularVerb))
             return result.scalars().all()
 
-    async def get_new_words(self):
-        async with self.db as session:
-            result = await session.execute(select(NewWord))
-            return result.scalars().all()
-
     async def edit_testing_exercise(self, section, subsection, test, answer, index):
         async with self.db as session:
             async with session.begin():
@@ -123,6 +119,185 @@ class ExerciseManager(DatabaseManager):
                     delete(TestingExercise).where(TestingExercise.section == section,
                                                   TestingExercise.subsection == subsection,
                                                   TestingExercise.id == index))
+
+
+class NewWordsExerciseManager(DatabaseManager):
+    async def init_tables(self):
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    async def add_new_words_exercise(self, section, subsection, russian, english):
+        async with self.db as session:
+            async with session.begin():
+                max_id = await session.execute(
+                    select(func.max(NewWords.id)).filter_by(section=section, subsection=subsection))
+                max_id = max_id.scalar() or 0
+                next_id = max_id + 1
+
+                exercise = NewWords(section=section, subsection=subsection, id=next_id, russian=russian,
+                                    english=english)
+                session.add(exercise)
+
+    async def delete_new_words_exercise(self, section, subsection, index):
+        async with self.db as session:
+            async with session.begin():
+                await session.execute(
+                    delete(NewWords).where(NewWords.section == section,
+                                           NewWords.subsection == subsection,
+                                           NewWords.id == index))
+
+    async def edit_new_words_exercise(self, section, subsection, russian, english, index):
+        async with self.db as session:
+            async with session.begin():
+                await session.execute(
+                    update(NewWords).where(NewWords.section == section,
+                                           NewWords.subsection == subsection,
+                                           NewWords.id == index).values(russian=russian, english=english))
+
+    async def get_count_new_words_exercises_in_subsection(self, section: str, subsection: str):
+        async with self.db as session:
+            count_exercises_in_subsection = (await session.execute(
+                select(func.count()).select_from(NewWords).where(
+                    NewWords.section == section,
+                    NewWords.subsection == subsection))).scalar()
+            return count_exercises_in_subsection
+
+    async def get_new_words_exercises(self, subsection: str):
+        async with self.db as session:
+            res = await session.execute(
+                select(NewWords).filter_by(subsection=subsection).order_by(NewWords.id))
+            exercises = res.scalars().all()
+            result = ''
+            for exercise in exercises:
+                result += f'{exercise.id}) {exercise.russian} – {exercise.english}\n\n'
+            return result
+
+
+class UserWordsLearningManager(DatabaseManager):
+    async def init_tables(self):
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    async def get_random_word_exercise(self, user_id: int) -> dict:
+        async with self.db as session:
+            # Основной запрос для получения упражнений, которые пользователь может выполнить сегодня
+            words_to_learn_today = (
+                select(UserWordsLearning)
+                .filter(
+                    UserWordsLearning.user_id == user_id,
+                    UserWordsLearning.next_review_date <= date.today()
+                )).options(joinedload(UserWordsLearning.new_word))  # Загружаем связанные слова
+
+            words_to_learn_today = (await session.execute(words_to_learn_today)).scalars().all()
+            if not words_to_learn_today:
+                return None  # Если нет доступных упражнений
+
+            all_words = (
+                select(UserWordsLearning)
+                .filter(UserWordsLearning.user_id == user_id,
+                        UserWordsLearning.subsection != 'Idioms')).options(joinedload(UserWordsLearning.new_word))
+
+            all_words = (await session.execute(all_words)).scalars().all()
+            exercise = random.choice(words_to_learn_today)
+            if exercise.new_word is None:
+                raise ValueError(f'Exercise with ID {exercise.id} has no associated new_word')
+
+        options = [word.new_word.english for word in all_words if word.new_word.english != exercise.new_word.english]
+        if len(options) < 3:
+            raise ValueError('Недостаточно вариантов для выбора неверных ответов')
+        options = random.sample(options, 3)
+
+        return {'russian': exercise.new_word.russian, 'english': exercise.new_word.english,
+                'section': exercise.new_word.section, 'subsection': exercise.new_word.subsection,
+                'exercise_id': exercise.exercise_id,
+                'options': options}
+
+    async def get_count_active_learning_exercises(self, user_id: int) -> int:
+        async with self.db as session:
+            count = (await session.execute(
+                select(func.count(UserWordsLearning.exercise_id)).where(
+                    UserWordsLearning.user_id == user_id,
+                    UserWordsLearning.success <= 3))).scalar()
+            return count
+
+    async def get_count_learned_exercises(self, user_id: int) -> int:
+        async with self.db as session:
+            count = (await session.execute(
+                select(func.count(UserWordsLearning.exercise_id)).where(
+                    UserWordsLearning.user_id == user_id,
+                    UserWordsLearning.success >= 7))).scalar()
+            return count
+
+    async def get_count_all_exercises_by_user(self, user_id: int) -> int:
+        async with self.db as session:
+            count = (await session.execute(
+                select(func.count(UserWordsLearning.exercise_id)).where(
+                    UserWordsLearning.user_id == user_id))).scalar()
+            return count
+    async def get_count_all_exercises_for_today_by_user(self, user_id: int) -> int:
+        async with self.db as session:
+            count = (await session.execute(
+                select(func.count(UserWordsLearning.exercise_id)).where(
+                    UserWordsLearning.user_id == user_id,
+                UserWordsLearning.next_review_date == date.today()))).scalar()
+            return count
+
+    async def get_added_subsections_by_user(self, user_id: int):
+        async with self.db as session:
+            result = await session.execute(
+                select(distinct(UserWordsLearning.subsection))
+                .filter(UserWordsLearning.user_id == user_id)
+            )
+            unique_subsections = result.scalars().all()
+            return unique_subsections
+
+    async def set_progress(self, user_id: int, section: str, subsection: str, exercise_id: int, success: bool):
+        async with self.db as session:
+            async with session.begin():
+                info = (await session.execute(select(UserWordsLearning).where(UserWordsLearning.user_id == user_id,
+                                                                              UserWordsLearning.section == section,
+                                                                              UserWordsLearning.subsection == subsection,
+                                                                              UserWordsLearning.exercise_id == exercise_id))).scalars().first()
+                next_review_date = date.today()
+                success_value = info.success
+                attempts = info.attempts + 1
+                if success == True:
+                    stmt = (update(User).where(User.user_id == user_id).values(points=User.points + 1))
+                    await session.execute(stmt)
+                    success_value += 1
+                    next_review_date = await calculate_next_review_date(success_attempts=success_value,
+                                                                        total_attempts=attempts)
+                elif success == False:
+                    stmt = (update(User).where(User.user_id == user_id).values(points=User.points - 1))
+                    await session.execute(stmt)
+                    next_review_date = date.today()  # + timedelta(days=1)
+
+                await session.execute(
+                    update(UserWordsLearning).where(UserWordsLearning.section == section,
+                                                    UserWordsLearning.subsection == subsection,
+                                                    UserWordsLearning.exercise_id == exercise_id).values(
+                        success=success_value, next_review_date=next_review_date,
+                        attempts=UserWordsLearning.attempts + 1
+                    ))
+
+
+async def add_words_to_learning(self, section: str, subsection: str, user_id: int) -> None:
+    async with self.db as session:
+        res = await session.execute(
+            select(NewWords).filter_by(subsection=subsection, section=section).order_by(NewWords.id))
+        exercises = res.scalars().all()
+
+        for exercise in exercises:
+            # Проверяем, что упражнение является объектом NewWords
+            if isinstance(exercise, NewWords):
+                result = UserWordsLearning(
+                    user_id=user_id,
+                    section=section,
+                    subsection=subsection,
+                    exercise_id=exercise.id
+                )
+                session.add(result)
+        await session.commit()
 
 
 class UserProgressManager(DatabaseManager):
@@ -351,8 +526,8 @@ class UserProgressManager(DatabaseManager):
         async with self.db as session:
             async with session.begin():
                 await session.execute(delete(UserProgress).where(UserProgress.exercise_section == section,
-                                                                    UserProgress.exercise_subsection == subsection,
-                                                                    UserProgress.user_id == user_id))
+                                                                 UserProgress.exercise_subsection == subsection,
+                                                                 UserProgress.user_id == user_id))
 
 
 class UserManager(DatabaseManager):
@@ -363,8 +538,7 @@ class UserManager(DatabaseManager):
     async def add_user(self, user_id, full_name, tg_login):
         async with self.db as session:
             async with session.begin():
-                # Проверка на существование пользователя
-                result = await session.execute(select(User).filter_by(user_id=user_id))
+                result = await session.execute(select(User.user_id).filter(User.user_id == user_id))
                 existing_user = result.scalar_one_or_none()
                 if existing_user:
                     print(f"User with user_id {user_id}:{full_name} already exists.")
