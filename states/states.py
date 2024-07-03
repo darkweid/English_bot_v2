@@ -47,11 +47,20 @@ class AdminFSM(StatesGroup):
 
     #Stats
     see_user_info = State()
+    see_user_management = State()
 
     #Broadcasting
     broadcasting_set_date_time = State()
     broadcasting_set_text = State()
 
     #New_words
+    select_section_words = State()
+    select_subsection_words = State()
+    select_management_action_words = State()
+    adding_exercise_words = State()
+    deleting_exercise_words = State()
+    editing_exercise_words = State()
+    ready_to_edit_exercise_words = State()
+    ready_to_delete_exercise_words = State()
 
     #Irr_verbs
