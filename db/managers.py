@@ -631,3 +631,36 @@ telegram id: {user.user_id}
 
                 return info
             return None
+
+
+async def calculate_success_rate(success_attempts, total_attempts):
+    if total_attempts == 0:
+        return 0  # избегаем деления на ноль
+    return success_attempts / total_attempts
+
+
+async def calculate_next_interval(success_attempts, success_rate):
+    base_interval = 1  # начальный интервал в днях
+    growth_factor = 1.7  # фактор роста интервала
+
+    # Рассчитываем стандартный следующий интервал
+    standard_interval = base_interval * (growth_factor ** success_attempts)
+
+    # Коэффициент адаптации
+    if success_rate >= 0.75:  # высокий успех, увеличиваем интервал
+        adjustment_factor = 1 + (success_rate - 0.75) * 2
+    elif success_rate < 0.75:  # низкий успех, уменьшаем интервал
+        adjustment_factor = 1 - (0.75 - success_rate) * 2
+    else:
+        adjustment_factor = 1
+
+    # Рассчитываем новый адаптированный интервал
+    next_interval = standard_interval * adjustment_factor
+    return next_interval
+
+
+async def calculate_next_review_date(success_attempts, total_attempts):
+    success_rate = await calculate_success_rate(success_attempts, total_attempts)
+    next_interval_days = await calculate_next_interval(success_attempts, success_rate)
+    next_review_date = date.today() + timedelta(days=next_interval_days)
+    return next_review_date
