@@ -1,4 +1,5 @@
-import asyncio, logging
+import asyncio
+import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage, Redis
@@ -51,11 +52,9 @@ async def main():
         dp.include_router(user_new_words_router)
         dp.include_router(fallback_router)
 
-
-
         await set_main_menu(bot)
         await bot.delete_webhook(drop_pending_updates=True)
-        await send_message_to_admin(bot, text='🟢 Бот запущен 🟢')
+        await send_message_to_admin(text='🟢 Бот запущен 🟢')
         await on_startup()
         await dp.start_polling(bot)
     except Exception as e:
@@ -63,7 +62,7 @@ async def main():
 
     finally:
         logger.info('Бот был остановлен.')
-        await send_message_to_admin(bot, text='🟥 Бот остановлен 🟥')
+        await send_message_to_admin(text='🟥 Бот остановлен 🟥')
 
 
 async def on_startup():

@@ -33,7 +33,7 @@ async def process_start_command(message: Message, state: FSMContext):
         link_preview_options=LinkPreviewOptions(is_disabled=True))
     await message.answer(MessageTexts.WELCOME_EXISTING_USER.value,
                          reply_markup=await keyboard_builder(1, *[button.value for button in MainMenuButtons]))
-    await send_message_to_admin(message.bot, f"""Зарегистрирован новый пользователь.
+    await send_message_to_admin(text=f"""Зарегистрирован новый пользователь.
 Имя: {message.from_user.full_name}\nТелеграм: @{message.from_user.username}\n""")
     await state.set_state(UserFSM.existing_user)
 
