@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Time, ForeignKey, Boolean, Index
+from datetime import date
+from sqlalchemy import Column, Integer, String, Date, DateTime, Time, ForeignKey, Boolean, Index, ForeignKeyConstraint
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -20,30 +21,39 @@ class IrregularVerb(Base):
     english = Column(String, nullable=False)
 
 
-class NewWord(Base):
+class NewWords(Base):
     __tablename__ = 'new_words'
     section = Column(String, primary_key=True, nullable=False)
     subsection = Column(String, primary_key=True, nullable=False)
     id = Column(Integer, primary_key=True, nullable=False)
     russian = Column(String, nullable=False)
     english = Column(String, nullable=False)
+    user_words = relationship("UserWordsLearning", back_populates="new_word")
 
 
-class UserProgressWordsLearning(Base):
-    __tablename__ = 'user_progress_words_learning'
+class UserWordsLearning(Base):
+    __tablename__ = 'user_words_learning'
     user_id = Column(Integer, primary_key=True, nullable=False, index=True)
-    section = Column(Integer, primary_key=True, nullable=False, index=True)
-    subsection = Column(Integer, primary_key=True, nullable=False, index=True)
-    id = Column(Integer, primary_key=True, nullable=False)
-    attempts = Column(Integer, default=1, nullable=False)
+    section = Column(String, primary_key=True, nullable=False, index=True)
+    subsection = Column(String, primary_key=True, nullable=False, index=True)
+    exercise_id = Column(Integer, primary_key=True, nullable=False)
+    attempts = Column(Integer, default=0, nullable=False)
     success = Column(Integer, default=0, nullable=False)
     level_SR = Column(Integer, default=0, nullable=False)
-    next_review_date = Column(Date, nullable=False)
-    date = Column(Date, nullable=False)
+    next_review_date = Column(Date, default=date.today(), nullable=False)
+    date = Column(Date, default=date.today(), nullable=False)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['section', 'subsection', 'exercise_id'],
+            ['new_words.section', 'new_words.subsection', 'new_words.id']
+        ),
+    )
+
+    new_word = relationship("NewWords", back_populates="user_words")
 
 
-Index('ix_user_section', UserProgressWordsLearning.user_id, UserProgressWordsLearning.section,
-      UserProgressWordsLearning.subsection)
+Index('ix_user_section', UserWordsLearning.user_id, UserWordsLearning.section,
+      UserWordsLearning.subsection)
 
 
 class UserProgress(Base):
