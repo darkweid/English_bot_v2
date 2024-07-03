@@ -43,13 +43,15 @@ async def keyboard_builder(width: int, *args: ButtonEnumType, args_go_first: boo
 
 async def keyboard_builder_words_learning(width: int, correct: str, options: list[str]) -> InlineKeyboardMarkup:
     kb_builder = InlineKeyboardBuilder()
-    buttons = []
+    buttons = [InlineKeyboardButton(
+        text=correct,
+        callback_data='correct')]
 
     for option in options:
         buttons.append(
             InlineKeyboardButton(
                 text=option,
-                callback_data=str(option == correct)
+                callback_data='not_correct'
             )
         )
 
