@@ -16,17 +16,19 @@ user_new_words_router: Router = Router()
 exercise_manager = ExerciseManager()
 user_progress_manager = UserProgressManager()
 user_manager = UserManager()
+user_words_manager = UserWordsLearningManager()
+words_manager = NewWordsExerciseManager()
 
 
 @user_new_words_router.callback_query(F.data == MainMenuButtons.NEW_WORDS.value)
 async def start_new_words(callback: CallbackQuery, state: FSMContext):
     await callback.answer('Отличный выбор!')
 
-    await callback.message.answer('Что хочешь делать?',
-                                  reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
-                                                                      learn_new_words=BasicButtons.LEARN_ADDED_WORDS,
-                                                                      add_new_words=BasicButtons.ADD_WORDS,
-                                                                      progress_new_words=BasicButtons.NEW_WORDS_PROGRESS))
+    await callback.message.edit_text('Что хочешь делать?',
+                                     reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
+                                                                         learn_new_words=BasicButtons.LEARN_ADDED_WORDS,
+                                                                         add_new_words=BasicButtons.ADD_WORDS,
+                                                                         progress_new_words=BasicButtons.NEW_WORDS_PROGRESS))
     await state.set_state(WordsLearningFSM.default)
 
 
@@ -65,13 +67,70 @@ async def rules_new_words(callback: CallbackQuery, state: FSMContext):
 
 
 @user_new_words_router.callback_query(F.data == 'learn_new_words')
-async def learn_new_words(callback: CallbackQuery, state: FSMContext):
+async def learn_new_words(callback: CallbackQuery, state: FSMContext, hello_message: bool = True):
     await callback.answer()
-    await callback.message.edit_text(MessageTexts.NEW_WORDS_HELLO.value,
-                                     reply_markup=await keyboard_builder(1, rules_new_words=BasicButtons.RULES,
-                                                                         close_rules_new_words=BasicButtons.CLOSE))
-    await callback.message.answer('Здесь будут даваться слова для изучения на сегодня')
-    await state.set_state(WordsLearningFSM.in_process)
+    user_id = callback.from_user.id
+    exercise = await user_words_manager.get_random_word_exercise(user_id=user_id)
+    count_user_exercise = await user_words_manager.get_count_active_learning_exercises(user_id=user_id)
+    count_user_exercises_for_today = await user_words_manager.get_count_all_exercises_for_today_by_user(user_id=user_id)
+
+    if not exercise:
+        await callback.message.answer(f"""{MessageTexts.NO_WORDS_TO_LEARN_TODAY.value}
+Всего слов/идиом в активном изучении: {count_user_exercise}""",
+                                      reply_markup=await keyboard_builder(1, BasicButtons.CLOSE))
+    else:
+        if hello_message:
+            await callback.message.edit_text(f"""{MessageTexts.NEW_WORDS_HELLO.value}
+Всего слов в активном изучении: {count_user_exercise}
+Для изучения сегодня: {count_user_exercises_for_today}""",
+                                             reply_markup=await keyboard_builder(1, rules_new_words=BasicButtons.RULES,
+                                                                                 close_rules_new_words=BasicButtons.CLOSE))
+
+        word_russian, word_english, word_id, options = exercise['russian'], exercise['english'], exercise[
+            'exercise_id'], exercise['options']
+        await update_state_data(state, words_section=exercise['section'], words_subsection=exercise['subsection'],
+                                words_exercise_id=exercise['exercise_id'], test=word_russian, answer=word_english)
+
+        await callback.message.answer(word_russian.capitalize(),
+                                      reply_markup=await keyboard_builder_words_learning(1, correct=word_english,
+                                                                                         options=options))
+        await state.set_state(WordsLearningFSM.in_process)
+
+
+@user_new_words_router.callback_query(F.data == 'correct',
+                                      StateFilter(WordsLearningFSM.in_process))
+async def correct_answer_learning_words(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.edit_text(f'🔥🔥🔥{random.choice(list_right_answers)}')
+    await asyncio.sleep(0.7)
+    await callback.message.delete()
+    user_id = callback.from_user.id
+    data = await state.get_data()
+    section, subsection, exercise_id = data.get('words_section'), data.get('words_subsection'), data.get(
+        'words_exercise_id')
+    await user_words_manager.set_progress(user_id=user_id, section=section, subsection=subsection,
+                                          exercise_id=exercise_id, success=True)
+
+    await learn_new_words(callback, state, hello_message=False)
+
+
+@user_new_words_router.callback_query(F.data == 'not_correct',
+                                      StateFilter(WordsLearningFSM.in_process))
+async def not_correct_answer_learning_words(callback: CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    test, answer = user_data.get('test'), user_data.get('answer')
+
+    await callback.message.edit_text(f'😕\n{test} — {answer}')
+    await asyncio.sleep(1)
+    await callback.message.edit_text(f'{test} — {answer}')
+    await asyncio.sleep(0.2)
+    data = await state.get_data()
+    user_id = callback.from_user.id
+    section, subsection, exercise_id = data.get('words_section'), data.get('words_subsection'), data.get(
+        'words_exercise_id')
+    await user_words_manager.set_progress(user_id=user_id, section=section, subsection=subsection,
+                                          exercise_id=exercise_id, success=False)
+    await learn_new_words(callback, state, hello_message=False)
 
 
 @user_new_words_router.callback_query(F.data == 'add_new_words')
@@ -90,14 +149,16 @@ async def add_new_words_selected_section(callback: CallbackQuery, state: FSMCont
     await callback.answer()
     section_name = callback.data
     section = new_words_section_mapping.get(section_name)
+    user_id = callback.from_user.id
     if section is None:
         await callback.message.edit_text(MessageTexts.ERROR.value)
         await state.set_state(WordsLearningFSM.default)
         return
-
+    user_added_subsections = await user_words_manager.get_added_subsections_by_user(user_id=user_id)
+    buttons = [button.value for button in section if button.value not in user_added_subsections]
     await callback.message.edit_text(
         MessageTexts.SELECT_SUBSECTION_WORDS.value,
-        reply_markup=await keyboard_builder(1, *[button.value for button in section],  # subsection buttons
+        reply_markup=await keyboard_builder(1, *buttons,  # subsection buttons
                                             back_to_sections=BasicButtons.BACK,
                                             back_to_main_menu_new_words=BasicButtons.MAIN_MENU_NEW_WORDS))
     await state.set_state(WordsLearningFSM.selecting_subsection)
@@ -107,35 +168,46 @@ async def add_new_words_selected_section(callback: CallbackQuery, state: FSMCont
 @user_new_words_router.callback_query(StateFilter(WordsLearningFSM.selecting_subsection))
 async def add_new_words_selecting_subsection(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    subsection = callback.data
     user_data = await state.get_data()
     section = user_data.get('section')
+    subsection = callback.data
+    quantity = await words_manager.get_count_new_words_exercises_in_subsection(section=section, subsection=subsection)
+
     if subsection is None:
         await callback.message.edit_text(MessageTexts.ERROR.value)
         await state.set_state(UserFSM.default)
         return
-
-    await callback.message.edit_text(f"""Ты выбрал тему {subsection} в разделе {section}
-в теме {1} {'идиом' if section == NewWordsSections.IDIOMS.value else 'слов'}
+    if quantity == 0:
+        await callback.message.edit_text(f"""В теме «{subsection}» еще нет упражнений""",
+                                         reply_markup=await keyboard_builder(1,
+                                                                             back_to_sections=BasicButtons.BACK,
+                                                                             back_to_main_menu_new_words=BasicButtons.MAIN_MENU_NEW_WORDS))
+    else:
+        await callback.message.edit_text(f"""Ты выбрал тему {subsection} в разделе {section}
+в теме {quantity} {'идиом' if section == NewWordsSections.IDIOMS.value else 'слов'}
 Добавить в изучаемые?""",
-                                     reply_markup=await keyboard_builder(1, add_words=BasicButtons.YES,
-                                                                         do_not_add_words=BasicButtons.NO,
-                                                                         back_to_sections=BasicButtons.BACK,
-                                                                         back_to_main_menu_new_words=BasicButtons.MAIN_MENU_NEW_WORDS))
-    await state.set_state(WordsLearningFSM.selected_subsection)
-    await update_state_data(state, subsection=subsection)
+                                         reply_markup=await keyboard_builder(1, add_words=BasicButtons.YES,
+                                                                             do_not_add_words=BasicButtons.NO,
+                                                                             back_to_sections=BasicButtons.BACK,
+                                                                             back_to_main_menu_new_words=BasicButtons.MAIN_MENU_NEW_WORDS))
+        await state.set_state(WordsLearningFSM.selected_subsection)
+        await update_state_data(state, subsection=subsection)
 
 
 @user_new_words_router.callback_query(StateFilter(WordsLearningFSM.selected_subsection))
 async def add_new_words_confirm(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    user_data = await state.get_data()
+    section, subsection, user_id = user_data.get('section'), user_data.get('subsection'), callback.from_user.id
     user_answer = callback.data
     if user_answer == 'add_words':
-        # добавить слова в изучение
+        await user_words_manager.add_words_to_learning(section=section, subsection=subsection, user_id=user_id)
         await callback.message.edit_text(
             'Добавлено',
             reply_markup=await keyboard_builder(1,
                                                 back_to_main_menu_new_words=BasicButtons.MAIN_MENU_NEW_WORDS))
+        await send_message_to_admin(text=f"""Пользователь @{callback.from_user.username} добавил
+тему «{section} – {subsection}» в изучение""")
     elif user_answer == 'do_not_add_words':
         await callback.message.edit_text(
             'Слова не добавлены',
