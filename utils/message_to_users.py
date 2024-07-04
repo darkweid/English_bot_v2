@@ -2,6 +2,8 @@ from config_data.config import Config, load_config
 from aiogram import Bot
 from db import UserManager
 from .bot_init import get_bot_instance
+from keyboards import keyboard_builder
+from lexicon import BasicButtons
 
 config: Config = load_config()
 ADMINS: list = config.tg_bot.admin_ids
@@ -18,6 +20,10 @@ async def send_message_to_all_users(text: str):
         await bot.send_message(user_id, text=text)
 
 
-async def send_message_to_user(user_id: int, text: str):
+async def send_message_to_user(user_id: int, text: str, learning_button: bool = False):
     bot: Bot = await get_bot_instance()
-    await bot.send_message(user_id, text=text)
+    if not learning_button:
+        await bot.send_message(user_id, text=text)
+    else:
+        await bot.send_message(user_id, text=text,
+                               reply_markup=await keyboard_builder(1, learn_new_words=BasicButtons.LEARN_ADDED_WORDS))
