@@ -238,6 +238,7 @@ class AdminMenuButtons(Enum):
 
     USERS = 'Пользователи'
     DEL_USER = 'Удалить пользователя'
+    ADD_WORDS_TO_USER_LEARNING = 'Добавить пользователю слова'
 
     BROADCAST = 'Рассылка пользователям'
     DEL_BROADCASTS = 'Удалить все запланированные рассылки'
