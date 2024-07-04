@@ -35,7 +35,7 @@ class SentencesForTranslationFSM(StatesGroup):
 class AdminFSM(StatesGroup):
     default = State()
 
-    #Testing
+    # Testing
     select_section_testing = State()
     select_subsection_testing = State()
     select_management_action_testing = State()
@@ -45,15 +45,11 @@ class AdminFSM(StatesGroup):
     ready_to_edit_exercise_testing = State()
     ready_to_delete_exercise_testing = State()
 
-    #Stats
-    see_user_info = State()
-    see_user_management = State()
-
-    #Broadcasting
+    # Broadcasting
     broadcasting_set_date_time = State()
     broadcasting_set_text = State()
 
-    #New_words
+    # New_words
     select_section_words = State()
     select_subsection_words = State()
     select_management_action_words = State()
@@ -63,4 +59,10 @@ class AdminFSM(StatesGroup):
     ready_to_edit_exercise_words = State()
     ready_to_delete_exercise_words = State()
 
-    #Irr_verbs
+    # Irr_verbs
+
+    # Users
+    see_user_info = State()
+    see_user_management = State()
+    adding_words_to_user = State()
+    deleting_user = State()
