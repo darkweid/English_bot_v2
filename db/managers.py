@@ -180,37 +180,45 @@ class UserWordsLearningManager(DatabaseManager):
 
     async def get_random_word_exercise(self, user_id: int) -> dict:
         async with self.db as session:
-            # Основной запрос для получения упражнений, которые пользователь может выполнить сегодня
             words_to_learn_today = (
                 select(UserWordsLearning)
                 .filter(
                     UserWordsLearning.user_id == user_id,
                     UserWordsLearning.next_review_date <= date.today()
-                )).options(joinedload(UserWordsLearning.new_word))  # Загружаем связанные слова
+                )).options(joinedload(UserWordsLearning.new_word))
 
             words_to_learn_today = (await session.execute(words_to_learn_today)).scalars().all()
             if not words_to_learn_today:
-                return None  # Если нет доступных упражнений
+                return None
 
-            all_words = (
-                select(UserWordsLearning)
-                .filter(UserWordsLearning.user_id == user_id,
-                        UserWordsLearning.subsection != 'Idioms')).options(joinedload(UserWordsLearning.new_word))
-
-            all_words = (await session.execute(all_words)).scalars().all()
             exercise = random.choice(words_to_learn_today)
             if exercise.new_word is None:
                 raise ValueError(f'Exercise with ID {exercise.id} has no associated new_word')
 
-        options = [word.new_word.english for word in all_words if word.new_word.english != exercise.new_word.english]
+            all_words = (
+                select(UserWordsLearning)
+                .filter(
+                    UserWordsLearning.user_id == user_id,
+                    UserWordsLearning.subsection != 'Idioms',
+                    UserWordsLearning.section == exercise.new_word.section,
+                    UserWordsLearning.subsection == exercise.new_word.subsection
+                )).options(joinedload(UserWordsLearning.new_word))
+
+            all_words = (await session.execute(all_words)).scalars().all()
+
+        options = [word.new_word.english.capitalize() for word in all_words if word.new_word.english != exercise.new_word.english]
         if len(options) < 3:
             raise ValueError('Недостаточно вариантов для выбора неверных ответов')
         options = random.sample(options, 3)
 
-        return {'russian': exercise.new_word.russian, 'english': exercise.new_word.english,
-                'section': exercise.new_word.section, 'subsection': exercise.new_word.subsection,
-                'exercise_id': exercise.exercise_id,
-                'options': options}
+        return {
+            'russian': exercise.new_word.russian.capitalize(),
+            'english': exercise.new_word.english.capitalize(),
+            'section': exercise.new_word.section,
+            'subsection': exercise.new_word.subsection,
+            'exercise_id': exercise.exercise_id,
+            'options': options
+        }
 
     async def get_count_active_learning_exercises(self, user_id: int) -> int:
         async with self.db as session:
@@ -234,12 +242,13 @@ class UserWordsLearningManager(DatabaseManager):
                 select(func.count(UserWordsLearning.exercise_id)).where(
                     UserWordsLearning.user_id == user_id))).scalar()
             return count
+
     async def get_count_all_exercises_for_today_by_user(self, user_id: int) -> int:
         async with self.db as session:
             count = (await session.execute(
                 select(func.count(UserWordsLearning.exercise_id)).where(
                     UserWordsLearning.user_id == user_id,
-                UserWordsLearning.next_review_date == date.today()))).scalar()
+                    UserWordsLearning.next_review_date == date.today()))).scalar()
             return count
 
     async def get_added_subsections_by_user(self, user_id: int):
@@ -280,21 +289,39 @@ class UserWordsLearningManager(DatabaseManager):
                         attempts=UserWordsLearning.attempts + 1
                     ))
 
+    async def add_words_to_learning(self, section: str, subsection: str, user_id: int) -> None:
+        async with self.db as session:
+            res = await session.execute(
+                select(NewWords).filter_by(subsection=subsection, section=section).order_by(NewWords.id))
+            exercises = res.scalars().all()
 
-async def add_words_to_learning(self, section: str, subsection: str, user_id: int) -> None:
-    async with self.db as session:
-        res = await session.execute(
-            select(NewWords).filter_by(subsection=subsection, section=section).order_by(NewWords.id))
-        exercises = res.scalars().all()
+            for exercise in exercises:
+                # Проверяем, что упражнение является объектом NewWords
+                if isinstance(exercise, NewWords):
+                    result = UserWordsLearning(
+                        user_id=user_id,
+                        section=section,
+                        subsection=subsection,
+                        exercise_id=exercise.id
+                    )
+                session.add(result)
+            await session.commit()
 
-        for exercise in exercises:
-            # Проверяем, что упражнение является объектом NewWords
-            if isinstance(exercise, NewWords):
+    async def admin_add_words_to_learning(self, russian: str, english: str, user_id: int) -> None:
+        async with self.db as session:
+            async with session.begin():
+                max_id = await session.execute(
+                    select(func.max(NewWords.id)).filter_by(section=str(user_id), subsection=str(user_id)))
+                max_id = max_id.scalar() or 0
+                next_id = max_id + 1
+                exercise = NewWords(section=str(user_id), subsection=str(user_id), id=next_id, russian=russian,
+                                    english=english)
+                session.add(exercise)
                 result = UserWordsLearning(
                     user_id=user_id,
-                    section=section,
-                    subsection=subsection,
-                    exercise_id=exercise.id
+                    section=str(user_id),
+                    subsection=str(user_id),
+                    exercise_id=next_id
                 )
                 session.add(result)
         await session.commit()
