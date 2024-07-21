@@ -3,7 +3,6 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 COPY requirements.txt .
-#COPY .env .
 RUN pip install --no-cache -r /app/requirements.txt
 COPY . /app/bot
 CMD ["python", "/app/bot/main.py"]
