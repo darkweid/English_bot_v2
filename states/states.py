@@ -58,6 +58,7 @@ class AdminFSM(StatesGroup):
     editing_exercise_words = State()
     ready_to_edit_exercise_words = State()
     ready_to_delete_exercise_words = State()
+    adding_new_section = State()
 
     # Irr_verbs
 
