@@ -12,6 +12,7 @@ from db import init_db, ExerciseManager, UserManager, UserProgressManager
 logger = logging.getLogger(__name__)
 config: Config = load_config()
 BOT_TOKEN: str = config.tg_bot.token
+REDIS_DSN: str = config.tg_bot.redis
 ADMINS: list = config.tg_bot.admin_ids
 
 exercise_manager = ExerciseManager()
@@ -28,9 +29,10 @@ async def main():
 
         logger.info('Starting bot')
 
-        redis: Redis = Redis(host='localhost')
+        # redis: Redis = Redis(host='localhost')
 
-        storage: RedisStorage = RedisStorage(redis=redis)
+        # storage: RedisStorage = RedisStorage(redis=redis)
+        storage = RedisStorage.from_url(url=REDIS_DSN)
 
         await init_db()
         await exercise_manager.init_tables()
