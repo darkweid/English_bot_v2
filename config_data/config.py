@@ -13,6 +13,7 @@ from environs import Env
 @dataclass
 class TgBot:
     token: str  # Токен для доступа к телеграм-боту
+    redis: str
     admin_ids: list[int]  # Список id администраторов бота
 
 
@@ -28,7 +29,7 @@ def load_config(path: str | None = None) -> Config:
     env: Env = Env()
     env.read_env(path)
 
-    return Config(tg_bot=TgBot(token=env('BOT_TOKEN'), admin_ids=env.list('ADMIN_IDS')))  # ,
+    return Config(tg_bot=TgBot(token=env('BOT_TOKEN'), redis=env('REDIS_DSN'), admin_ids=env.list('ADMIN_IDS')))  # ,
 #                  db=DatabaseConfig(database=env('DATABASE'),
 #                                    db_host=env('DB_HOST'),
 #                                    db_user=env('DB_USER'),
