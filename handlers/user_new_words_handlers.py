@@ -203,6 +203,27 @@ async def add_new_words_confirm(callback: CallbackQuery, state: FSMContext):
 @user_new_words_router.callback_query(F.data == 'progress_new_words')
 async def stats_new_words(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    await callback.message.edit_text('Здесь будут прогресс',
-                                     reply_markup=await keyboard_builder(1,
-                                                                         back_to_main_menu_new_words=BasicButtons.BACK))
+    user_id = callback.from_user.id
+    stats = await user_words_manager.get_user_stats(user_id=user_id)
+    stats_text = ''
+    for subsection, data in stats.items():
+        if subsection.isdigit():
+            subsection = 'Personal Words'
+        learned = data['learned']
+        for_today_learning = data['for_today_learning']
+        total_words_in_subsection = data['total_words_in_subsection']
+        active_learning = data['active_learning']
+        success_rate = data['success_rate']
+        stats_text += (f'Тема <b>«{subsection}»</b>\n'
+                       f'Для изучения сегодня: {for_today_learning}\n'
+                       f'Всего слов в теме: {total_words_in_subsection}\n'
+                       f'В активном изучении: {active_learning}\n'
+                       f'Изучено: {learned}\n'
+                       f'Правильных ответов: {success_rate:.0f}%\n\n')
+    if len(stats_text) > 4000:
+        await send_long_message(callback=callback, text=stats_text, delimiter='\n\n',
+                                reply_markup=await keyboard_builder(1, close_message=BasicButtons.CLOSE))
+    else:
+        await callback.message.edit_text(stats_text,
+                                         reply_markup=await keyboard_builder(1,
+                                                                             back_to_main_menu_new_words=BasicButtons.BACK))
