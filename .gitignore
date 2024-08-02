@@ -1,3 +1,13 @@
-/.env
-/english_bot.db
-/jobs.sqlite
+.env
+english_bot.db
+jobs.sqlite
+.venv/
+venv/
+
+.idea/
+.vscode/
+
+**/__pycache__/
+
+*.mo
+*.pot
