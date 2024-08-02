@@ -1,6 +1,6 @@
-from .managers import (DatabaseManager, ExerciseManager, UserProgressManager, UserManager, NewWordsExerciseManager,
+from .managers import (DatabaseManager, TestingManager, UserProgressManager, UserManager, NewWordsExerciseManager,
                        UserWordsLearningManager)
 from .init import init_db
 
-__all__ = ['DatabaseManager', 'ExerciseManager', 'UserProgressManager', 'UserManager', 'NewWordsExerciseManager',
+__all__ = ['DatabaseManager', 'TestingManager', 'UserProgressManager', 'UserManager', 'NewWordsExerciseManager',
            'UserWordsLearningManager']
