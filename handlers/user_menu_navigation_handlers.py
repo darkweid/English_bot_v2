@@ -11,6 +11,7 @@ user_navigation_router: Router = Router()
 
 
 @user_navigation_router.callback_query(F.data == BasicButtons.CLOSE.value)
+@user_navigation_router.callback_query(F.data == 'close_message')
 async def close_message(callback: CallbackQuery):
     await callback.answer()
     await callback.message.delete()
