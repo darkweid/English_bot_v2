@@ -1,13 +1,19 @@
 from aiogram.fsm.context import FSMContext
 from enum import Enum
 
-
 async def update_state_data(state: FSMContext, **kwargs):
     """
-    Обновляет данные в состоянии с помощью предоставленных ключей и значений.
+    Update state data with the provided key-value pairs.
 
-    :param state: Текущий объект состояния FSMContext.
-    :param kwargs: Ключи и значения, которые нужно добавить или обновить в данных состояния.
+    Parameters:
+    - state (FSMContext): The current FSMContext object.
+    - kwargs: Key-value pairs to add or update in the state data.
+
+    This function:
+    - Retrieves the current state data.
+    - Converts Enum values to their names.
+    - Updates the state data with the provided key-value pairs.
+    - Sets the updated data back to the state.
     """
     data = await state.get_data()
 
@@ -18,6 +24,3 @@ async def update_state_data(state: FSMContext, **kwargs):
     data.update(kwargs)
 
     await state.set_data(data)
-
-
-
