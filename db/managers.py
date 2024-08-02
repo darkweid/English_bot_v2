@@ -30,11 +30,7 @@ class DatabaseManager:
         await self.db.close()
 
 
-class ExerciseManager(DatabaseManager):
-    async def init_tables(self):
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
+class TestingManager(DatabaseManager):
     async def add_testing_exercise(self, section, subsection, test, answer):
         async with self.db as session:
             async with session.begin():
@@ -46,12 +42,6 @@ class ExerciseManager(DatabaseManager):
 
                 exercise = TestingExercise(section=section, subsection=subsection, id=next_id, test=test, answer=answer)
                 session.add(exercise)
-
-    async def add_irregular_verb(self, russian, english):
-        async with self.db as session:
-            async with session.begin():
-                verb = IrregularVerb(russian=russian, english=english)
-                session.add(verb)
 
     async def get_testing_exercises(self, subsection: str):
         async with self.db as session:
@@ -99,10 +89,20 @@ class ExerciseManager(DatabaseManager):
             # Возвращаем случайное упражнение из списка
             return (result.test, result.answer, result.id)
 
-    async def get_irregular_verbs(self):
+    async def get_section_names(self):
         async with self.db as session:
-            result = await session.execute(select(IrregularVerb))
-            return result.scalars().all()
+            res = await session.execute(
+                select(distinct(TestingExercise.section)).order_by(TestingExercise.section))
+            subsections = res.scalars().all()
+            return subsections
+
+    async def get_subsection_names(self, section: str):
+        async with self.db as session:
+            res = await session.execute(
+                select(distinct(TestingExercise.subsection)).filter_by(section=section).order_by(
+                    TestingExercise.subsection))
+            subsections = res.scalars().all()
+            return subsections
 
     async def edit_testing_exercise(self, section, subsection, test, answer, index):
         async with self.db as session:
@@ -122,10 +122,6 @@ class ExerciseManager(DatabaseManager):
 
 
 class NewWordsExerciseManager(DatabaseManager):
-    async def init_tables(self):
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
     async def add_new_words_exercise(self, section, subsection, russian, english):
         async with self.db as session:
             async with session.begin():
@@ -172,12 +168,15 @@ class NewWordsExerciseManager(DatabaseManager):
                 result += f'{exercise.id}) {exercise.russian} – {exercise.english}\n\n'
             return result
 
+    async def get_subsection_names(self, section: str):
+        async with self.db as session:
+            res = await session.execute(
+                select(distinct(NewWords.subsection)).filter_by(section=section).order_by(NewWords.subsection))
+            subsections = res.scalars().all()
+            return subsections
+
 
 class UserWordsLearningManager(DatabaseManager):
-    async def init_tables(self):
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
     async def get_random_word_exercise(self, user_id: int) -> dict:
         async with self.db as session:
             words_to_learn_today = (
@@ -192,8 +191,6 @@ class UserWordsLearningManager(DatabaseManager):
                 return None
 
             exercise = random.choice(words_to_learn_today)
-            if exercise.new_word is None:
-                raise ValueError(f'Exercise with ID {exercise.id} has no associated new_word')
 
             all_words = (
                 select(UserWordsLearning)
@@ -203,12 +200,22 @@ class UserWordsLearningManager(DatabaseManager):
                     UserWordsLearning.section == exercise.new_word.section,
                     UserWordsLearning.subsection == exercise.new_word.subsection
                 )).options(joinedload(UserWordsLearning.new_word))
-
             all_words = (await session.execute(all_words)).scalars().all()
 
-        options = [word.new_word.english.capitalize() for word in all_words if word.new_word.english != exercise.new_word.english]
+        options = [word.new_word.english.capitalize() for word in all_words if
+                   word.new_word.english != exercise.new_word.english]
         if len(options) < 3:
-            raise ValueError('Недостаточно вариантов для выбора неверных ответов')
+            all_words = (
+                select(UserWordsLearning)
+                .filter(
+                    UserWordsLearning.user_id == user_id,
+                    UserWordsLearning.subsection != 'Idioms'
+                )).options(joinedload(UserWordsLearning.new_word))
+
+            all_words = (await session.execute(all_words)).scalars().all()
+            options = [word.new_word.english.capitalize() for word in all_words if
+                       word.new_word.english != exercise.new_word.english]
+
         options = random.sample(options, 3)
 
         return {
@@ -225,7 +232,7 @@ class UserWordsLearningManager(DatabaseManager):
             count = (await session.execute(
                 select(func.count(UserWordsLearning.exercise_id)).where(
                     UserWordsLearning.user_id == user_id,
-                    UserWordsLearning.success <= 3))).scalar()
+                    UserWordsLearning.success <= 4))).scalar()
             return count
 
     async def get_count_learned_exercises(self, user_id: int) -> int:
@@ -233,7 +240,7 @@ class UserWordsLearningManager(DatabaseManager):
             count = (await session.execute(
                 select(func.count(UserWordsLearning.exercise_id)).where(
                     UserWordsLearning.user_id == user_id,
-                    UserWordsLearning.success >= 7))).scalar()
+                    UserWordsLearning.success >= 6))).scalar()
             return count
 
     async def get_count_all_exercises_by_user(self, user_id: int) -> int:
@@ -248,7 +255,7 @@ class UserWordsLearningManager(DatabaseManager):
             count = (await session.execute(
                 select(func.count(UserWordsLearning.exercise_id)).where(
                     UserWordsLearning.user_id == user_id,
-                    UserWordsLearning.next_review_date == date.today()))).scalar()
+                    UserWordsLearning.next_review_date <= date.today()))).scalar()
             return count
 
     async def get_added_subsections_by_user(self, user_id: int):
@@ -259,6 +266,63 @@ class UserWordsLearningManager(DatabaseManager):
             )
             unique_subsections = result.scalars().all()
             return unique_subsections
+
+    async def get_user_stats(self, user_id: int) -> dict:
+        async with self.db as session:
+            result = {}
+            subsections = (await session.execute(
+                select(distinct(UserWordsLearning.subsection))
+                .filter(UserWordsLearning.user_id == user_id))).scalars().all()
+
+            for subsection in subsections:
+                learned = (await session.execute(
+                    select(func.count(UserWordsLearning.exercise_id)).where(
+                        UserWordsLearning.subsection == subsection,
+                        UserWordsLearning.user_id == user_id,
+                        UserWordsLearning.success >= 6))).scalar()
+
+                active_learning = (await session.execute(
+                    select(func.count(UserWordsLearning.exercise_id)).where(
+                        UserWordsLearning.subsection == subsection,
+                        UserWordsLearning.user_id == user_id,
+                        UserWordsLearning.success <= 4))).scalar()
+
+                for_today_learning = (await session.execute(
+                    select(func.count(UserWordsLearning.exercise_id)).where(
+                        UserWordsLearning.subsection == subsection,
+                        UserWordsLearning.user_id == user_id,
+                        UserWordsLearning.next_review_date <= date.today()))).scalar()
+
+                total_words_in_subsection = (await session.execute(
+                    select(func.count(UserWordsLearning.exercise_id)).where(
+                        UserWordsLearning.subsection == subsection,
+                        UserWordsLearning.user_id == user_id))).scalar()
+
+                total_success = (await session.execute(
+                    select(func.sum(UserWordsLearning.success)).where(
+                        UserWordsLearning.subsection == subsection,
+                        UserWordsLearning.user_id == user_id))).scalar() or 0
+
+                # Сумма всех попыток
+                total_attempts = (await session.execute(
+                    select(func.sum(UserWordsLearning.attempts)).where(
+                        UserWordsLearning.subsection == subsection,
+                        UserWordsLearning.user_id == user_id))).scalar() or 0
+
+                # Вычисление success rate
+                if total_attempts > 0:
+                    success_rate = (total_success / total_attempts) * 100
+                else:
+                    success_rate = 0
+
+                result[subsection] = {
+                    'learned': learned,
+                    'for_today_learning': for_today_learning,
+                    'active_learning': active_learning,
+                    'total_words_in_subsection': total_words_in_subsection,
+                    'success_rate': success_rate
+                }
+            return result
 
     async def set_progress(self, user_id: int, section: str, subsection: str, exercise_id: int, success: bool):
         async with self.db as session:
@@ -328,10 +392,6 @@ class UserWordsLearningManager(DatabaseManager):
 
 
 class UserProgressManager(DatabaseManager):
-    async def init_tables(self):
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
     async def mark_exercise_completed(self, user_id, exercise_type, subsection, section, exercise_id,
                                       success):
         async with self.db as session:
@@ -558,10 +618,6 @@ class UserProgressManager(DatabaseManager):
 
 
 class UserManager(DatabaseManager):
-    async def init_tables(self):
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
     async def add_user(self, user_id, full_name, tg_login):
         async with self.db as session:
             async with session.begin():
@@ -589,14 +645,14 @@ class UserManager(DatabaseManager):
             async with session.begin():
                 await session.execute(update(User).where(User.user_id == user_id).values(time_zone=timezone))
                 await session.commit()
-            return
+            # return
 
     async def set_reminder_time(self, user_id, time):
         async with self.db as session:
             async with session.begin():
                 await session.execute(update(User).where(User.user_id == user_id).values(reminder_time=time))
                 await session.commit()
-            return
+            # return
 
     async def get_all_users(self):
         async with self.db as session:
@@ -662,15 +718,14 @@ telegram id: {user.user_id}
 
 async def calculate_success_rate(success_attempts, total_attempts):
     if total_attempts == 0:
-        return 0  # избегаем деления на ноль
+        return 0
     return success_attempts / total_attempts
 
 
 async def calculate_next_interval(success_attempts, success_rate):
-    base_interval = 1  # начальный интервал в днях
-    growth_factor = 1.7  # фактор роста интервала
+    base_interval = 1
+    growth_factor = 1.7
 
-    # Рассчитываем стандартный следующий интервал
     standard_interval = base_interval * (growth_factor ** success_attempts)
 
     # Коэффициент адаптации
@@ -681,7 +736,6 @@ async def calculate_next_interval(success_attempts, success_rate):
     else:
         adjustment_factor = 1
 
-    # Рассчитываем новый адаптированный интервал
     next_interval = standard_interval * adjustment_factor
     return next_interval
 
