@@ -29,10 +29,9 @@ async def process_start_command(message: Message, state: FSMContext):
     full_name = message.from_user.full_name
     tg_login = message.from_user.username
     await user_manager.add_user(user_id, full_name, tg_login)
-    await message.answer(
-        f'Привет, {message.from_user.full_name}\nЯ бот от <a href="https://t.me/Oprus">Оли Прус</a>😊'
-        f'\n{MessageTexts.WELCOME_NEW_USER.value}',
-        link_preview_options=LinkPreviewOptions(is_disabled=True))
+    await message.answer(MessageTexts.WELCOME_NEW_USER.value.format(user_name=full_name),
+                         link_preview_options=LinkPreviewOptions(is_disabled=True),
+                         reply_markup=await keyboard_builder(1, BasicButtons.TURN_ON_REMINDER))
     await message.answer(MessageTexts.WELCOME_EXISTING_USER.value,
                          reply_markup=await keyboard_builder(1, *[button.value for button in MainMenuButtons]))
     await send_message_to_admin(text=f"""Зарегистрирован новый пользователь.
@@ -58,4 +57,5 @@ async def process_start_command_existing_user(message: Message, state: FSMContex
 async def info_command(message: Message, state: FSMContext):
     await state.set_state(UserFSM.default)
     await message.answer(MessageTexts.INFO_RULES.value,
+                         link_preview_options=LinkPreviewOptions(is_disabled=True),
                          reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU))
