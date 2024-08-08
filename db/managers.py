@@ -1,4 +1,3 @@
-from time import strftime
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.future import select
 from sqlalchemy import func, update, delete, not_, desc, distinct
@@ -178,6 +177,9 @@ class NewWordsExerciseManager(DatabaseManager):
 
 
 class UserWordsLearningManager(DatabaseManager):
+    ACTIVE_LEARNING_RATE = 3
+    LEARNED_RATE = 5
+
     async def get_random_word_exercise(self, user_id: int) -> dict:
         async with self.db as session:
             words_to_learn_today = (
@@ -233,7 +235,7 @@ class UserWordsLearningManager(DatabaseManager):
             count = (await session.execute(
                 select(func.count(UserWordsLearning.exercise_id)).where(
                     UserWordsLearning.user_id == user_id,
-                    UserWordsLearning.success <= 4))).scalar()
+                    UserWordsLearning.success <= self.ACTIVE_LEARNING_RATE))).scalar()
             return count
 
     async def get_count_learned_exercises(self, user_id: int) -> int:
@@ -241,7 +243,7 @@ class UserWordsLearningManager(DatabaseManager):
             count = (await session.execute(
                 select(func.count(UserWordsLearning.exercise_id)).where(
                     UserWordsLearning.user_id == user_id,
-                    UserWordsLearning.success >= 6))).scalar()
+                    UserWordsLearning.success >= self.LEARNED_RATE))).scalar()
             return count
 
     async def get_count_all_exercises_by_user(self, user_id: int) -> int:
@@ -280,13 +282,13 @@ class UserWordsLearningManager(DatabaseManager):
                     select(func.count(UserWordsLearning.exercise_id)).where(
                         UserWordsLearning.subsection == subsection,
                         UserWordsLearning.user_id == user_id,
-                        UserWordsLearning.success >= 6))).scalar()
+                        UserWordsLearning.success >= self.LEARNED_RATE))).scalar()
 
                 active_learning = (await session.execute(
                     select(func.count(UserWordsLearning.exercise_id)).where(
                         UserWordsLearning.subsection == subsection,
                         UserWordsLearning.user_id == user_id,
-                        UserWordsLearning.success <= 4))).scalar()
+                        UserWordsLearning.success <= self.ACTIVE_LEARNING_RATE))).scalar()
 
                 for_today_learning = (await session.execute(
                     select(func.count(UserWordsLearning.exercise_id)).where(
@@ -344,7 +346,7 @@ class UserWordsLearningManager(DatabaseManager):
                 elif success == False:
                     stmt = (update(User).where(User.user_id == user_id).values(points=User.points - 1))
                     await session.execute(stmt)
-                    next_review_date = date.today()  # + timedelta(days=1)
+                    next_review_date = date.today() + timedelta(days=1)
 
                 await session.execute(
                     update(UserWordsLearning).where(UserWordsLearning.section == section,
@@ -467,46 +469,6 @@ class UserProgressManager(DatabaseManager):
             )).scalar()
 
             return first_try_success_exercises_count, success_exercises_count, exercises_count
-
-    async def get_activity(self, interval: int = 0):
-        async with self.db as session:
-            target_date = (datetime.utcnow() - timedelta(days=interval)).date()
-            now = datetime.utcnow().date()
-            result_testing = (await session.execute(
-                select(func.count()).select_from(UserProgress).where(
-                    UserProgress.exercise_type == 'Testing',
-                    UserProgress.date >= target_date,
-                    UserProgress.date <= now))).scalar()
-
-            result_new_words = (await session.execute(
-                select(func.count()).select_from(UserProgress).where(
-                    UserProgress.exercise_type == 'New words',
-                    UserProgress.date >= target_date,
-                    UserProgress.date <= now))).scalar()
-
-            result_irregular_verbs = (await session.execute(
-                select(func.count()).select_from(UserProgress).where(
-                    UserProgress.exercise_type == 'Irregular verbs',
-                    UserProgress.date >= target_date,
-                    func.date(UserProgress.date) <= now))).scalar()
-            result_new_users = (await session.execute(
-                select(func.count()).select_from(User).where(
-                    func.date(User.registration_date) >= target_date,
-                    func.date(User.registration_date) <= now))).scalar()
-
-            if interval == 0:
-                text = 'сегодня'
-            elif interval == 7:
-                text = 'последнюю неделю'
-            elif interval == 30:
-                text = 'последний месяц'
-            info = f"""Статистика по всем пользователям за {text}:
-Тестирование: {result_testing}
-Изучение новых слов: {result_new_words}
-Неправильные глаголы: {result_irregular_verbs}
-Новых пользователей: {result_new_users}"""
-
-            return info
 
     async def get_activity_by_user(self, user_id: int, interval: int = 0):
         async with self.db as session:
@@ -646,14 +608,12 @@ class UserManager(DatabaseManager):
             async with session.begin():
                 await session.execute(update(User).where(User.user_id == user_id).values(time_zone=timezone))
                 await session.commit()
-            # return
 
     async def set_reminder_time(self, user_id, time):
         async with self.db as session:
             async with session.begin():
                 await session.execute(update(User).where(User.user_id == user_id).values(reminder_time=time))
                 await session.commit()
-            # return
 
     async def get_all_users(self):
         async with self.db as session:
