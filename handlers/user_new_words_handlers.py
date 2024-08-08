@@ -13,6 +13,7 @@ from keyboards import *
 user_new_words_router: Router = Router()
 user_words_manager = UserWordsLearningManager()
 words_manager = NewWordsExerciseManager()
+daily_stats_manager = DailyStatisticsManager()
 
 
 @user_new_words_router.callback_query(F.data == MainMenuButtons.NEW_WORDS.value)
@@ -111,6 +112,7 @@ async def correct_answer_learning_words(callback: CallbackQuery, state: FSMConte
                                           exercise_id=exercise_id, success=True)
 
     await learn_new_words(callback, state, hello_message=False)
+    await daily_stats_manager.update('new_words')
 
 
 @user_new_words_router.callback_query(F.data == 'not_correct',

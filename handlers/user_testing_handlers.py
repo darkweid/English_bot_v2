@@ -8,13 +8,14 @@ from states import TestingFSM
 from utils import send_message_to_admin, update_state_data
 from lexicon import (MessageTexts, BasicButtons, TestingSections, MainMenuButtons, list_right_answers,
                      testing_section_mapping)
-from db import TestingManager, UserProgressManager
+from db import TestingManager, UserProgressManager, DailyStatisticsManager
 from keyboards import keyboard_builder
 
 user_testing_router: Router = Router()
 
 testing_manager = TestingManager()
 user_progress_manager = UserProgressManager()
+daily_stats_manager = DailyStatisticsManager()
 
 
 @user_testing_router.callback_query((F.data == 'rules_testing'))
@@ -115,6 +116,7 @@ async def chose_subsection_testing(callback: CallbackQuery, state: FSMContext, p
 
 @user_testing_router.message(StateFilter(TestingFSM.in_process))  # В процессе тестирования
 async def in_process_testing(message: Message, state: FSMContext):
+    await daily_stats_manager.update('testing_exercises')
     data = await state.get_data()
     section, subsection, exercise_id, user_id = data.get('section'), data.get('subsection'), data.get(
         'current_id'), message.from_user.id
@@ -127,6 +129,7 @@ async def in_process_testing(message: Message, state: FSMContext):
                                                                         success=True)
         data = await state.get_data()
         subsection, section, user_id = data.get('subsection'), data.get('section'), message.from_user.id
+
         exercise = await testing_manager.get_random_testing_exercise(section=section,
                                                                      subsection=subsection,
                                                                      user_id=user_id)
@@ -151,7 +154,6 @@ async def in_process_testing(message: Message, state: FSMContext):
             else:
                 await message.answer(f'{random.choice(list_right_answers)}')
                 await message.answer(test)
-
     else:
         await message.answer(MessageTexts.INCORRECT_ANSWER.value,
                              reply_markup=await keyboard_builder(1, see_answer_testing=BasicButtons.SEE_ANSWER))

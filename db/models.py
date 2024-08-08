@@ -78,3 +78,15 @@ class User(Base):
     points = Column(Integer, default=0)
     reminder_time = Column(Time)
     time_zone = Column(String)
+
+
+class DailyStatistics(Base):
+    __tablename__ = 'daily_statistics'
+    date = Column(Date, primary_key=True, nullable=False)
+    total_testing_exercises = Column(Integer, default=0, nullable=False)
+    total_new_words = Column(Integer, default=0, nullable=False)
+    total_irregular_verbs = Column(Integer, default=0, nullable=False)
+    new_users = Column(Integer, default=0, nullable=False)
+
+
+Index('ix_daily_statistics_date', DailyStatistics.date)

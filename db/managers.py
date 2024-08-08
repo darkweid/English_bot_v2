@@ -4,7 +4,8 @@ from sqlalchemy.future import select
 from sqlalchemy import func, update, delete, not_, desc, distinct
 from sqlalchemy.orm import joinedload
 
-from db.models import Base, TestingExercise, IrregularVerb, NewWords, UserProgress, User, UserWordsLearning
+from db.models import (Base, TestingExercise, IrregularVerb, NewWords, UserProgress, User, UserWordsLearning,
+                       DailyStatistics)
 from db.init import engine
 from datetime import datetime, date, timedelta
 import random
@@ -714,6 +715,54 @@ telegram id: {user.user_id}
 
                 return info
             return None
+
+
+class DailyStatisticsManager(DatabaseManager):
+    async def update(self, update_type):
+        async with self.db as session:
+            async with session.begin():
+                today = date.today()
+                stats = (await session.execute(select(DailyStatistics).filter_by(date=today))).scalar_one_or_none()
+
+                if not stats:
+                    stats = DailyStatistics(date=today, total_new_words=0,
+                                            total_testing_exercises=0,
+                                            total_irregular_verbs=0,
+                                            new_users=0)
+                    session.add(stats)
+
+                if update_type == 'new_words':
+                    stats.total_new_words += 1
+                elif update_type == 'testing_exercises':
+                    stats.total_testing_exercises += 1
+                elif update_type == 'irregular_verbs':
+                    stats.total_irregular_verbs += 1
+                elif update_type == 'new_user':
+                    stats.new_users += 1
+
+                await session.commit()
+
+    async def get(self, start_date, end_date):
+        async with self.db as session:
+            async with session.begin():
+                result = await session.execute(
+                    select(
+                        func.sum(DailyStatistics.total_testing_exercises).label("testing_exercises"),
+                        func.sum(DailyStatistics.total_new_words).label("new_words"),
+                        func.sum(DailyStatistics.total_irregular_verbs).label("irregular_verbs"),
+                        func.sum(DailyStatistics.new_users).label("new_users")
+                    ).where(DailyStatistics.date >= start_date,
+                            DailyStatistics.date <= end_date)
+                )
+
+                stats = result.one()
+
+                return {
+                    "testing_exercises": stats.testing_exercises or 0,
+                    "new_words": stats.new_words or 0,
+                    "irregular_verbs": stats.irregular_verbs or 0,
+                    "new_users": stats.new_users or 0
+                }
 
 
 async def calculate_success_rate(success_attempts, total_attempts):

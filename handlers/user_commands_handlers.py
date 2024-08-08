@@ -6,11 +6,13 @@ from aiogram.types import LinkPreviewOptions, Message
 from states import UserFSM
 from utils import send_message_to_admin
 from lexicon import BasicButtons, MainMenuButtons, MessageTexts
-from db import UserManager
+from db import UserManager, DailyStatisticsManager
 from keyboards import keyboard_builder
 
 user_commands_router: Router = Router()
 user_manager = UserManager()
+daily_stats_manager = DailyStatisticsManager()
+
 
 
 @user_commands_router.message(Command(commands=["reset_fsm"]))
@@ -36,6 +38,7 @@ async def process_start_command(message: Message, state: FSMContext):
     await send_message_to_admin(text=f"""Зарегистрирован новый пользователь.
 Имя: {message.from_user.full_name}\nТелеграм: @{message.from_user.username}\n""")
     await state.set_state(UserFSM.existing_user)
+    await daily_stats_manager.update('new_user')
 
 
 @user_commands_router.message(Command(commands=['main_menu']),

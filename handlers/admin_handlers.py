@@ -4,8 +4,9 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from states import AdminFSM, UserFSM
-from db import TestingManager, UserProgressManager, UserManager, NewWordsExerciseManager, UserWordsLearningManager
-from datetime import datetime
+from db import TestingManager, UserProgressManager, UserManager, NewWordsExerciseManager, UserWordsLearningManager, \
+    DailyStatisticsManager
+from datetime import datetime, date, timedelta
 from keyboards import keyboard_builder, keyboard_builder_users
 from lexicon import (AdminMenuButtons, MessageTexts, BasicButtons, TestingSections, testing_section_mapping,
                      NewWordsSections, new_words_section_mapping)
@@ -20,6 +21,7 @@ user_progress_manager: UserProgressManager = UserProgressManager()
 user_manager: UserManager = UserManager()
 words_manager: NewWordsExerciseManager = NewWordsExerciseManager()
 user_words_learning_manager: UserWordsLearningManager = UserWordsLearningManager()
+daily_progress_manager: DailyStatisticsManager = DailyStatisticsManager()
 
 
 @admin_router.message(Command(commands=["admin"]))
@@ -591,13 +593,22 @@ async def admin_deleting_sentence_testing(message: Message, state: FSMContext):
 @admin_router.callback_query(F.data == AdminMenuButtons.SEE_ACTIVITY_MONTH.value)
 async def admin_activity(callback: CallbackQuery):
     cbdata = callback.data
+    today = date.today()
     if cbdata == AdminMenuButtons.SEE_ACTIVITY_DAY.value:
-        interval = 0
+        stats = await daily_progress_manager.get(start_date=today, end_date=today)
+        period = 'сегодня'
     elif cbdata == AdminMenuButtons.SEE_ACTIVITY_WEEK.value:
-        interval = 7
+        stats = await daily_progress_manager.get(start_date=today - timedelta(days=7), end_date=today)
+        period = 'неделю'
     elif cbdata == AdminMenuButtons.SEE_ACTIVITY_MONTH.value:
-        interval = 30
-    info = await user_progress_manager.get_activity(interval)
+        stats = await daily_progress_manager.get(start_date=today - timedelta(days=30), end_date=today)
+        period = 'месяц'
+
+    info = f"""Статистика по всем пользователям за {period}:
+Тестирование: <b>{stats.get('testing_exercises')}</b>
+Изучение новых слов: <b>{stats.get('new_words')}</b>
+Неправильные глаголы: <b>{stats.get('irregular_verbs')}</b>
+Новых пользователей: <b>{stats.get('new_users')}</b>"""
     await callback.message.answer(info,
                                   reply_markup=await keyboard_builder(1, close_message_admin=AdminMenuButtons.CLOSE))
 
