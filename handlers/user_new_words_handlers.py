@@ -11,6 +11,7 @@ from db import *
 from keyboards import *
 
 user_new_words_router: Router = Router()
+user_manager: UserManager = UserManager()
 user_words_manager = UserWordsLearningManager()
 words_manager = NewWordsExerciseManager()
 daily_stats_manager = DailyStatisticsManager()
@@ -132,6 +133,7 @@ async def not_correct_answer_learning_words(callback: CallbackQuery, state: FSMC
     await user_words_manager.set_progress(user_id=user_id, section=section, subsection=subsection,
                                           exercise_id=exercise_id, success=False)
     await learn_new_words(callback, state, hello_message=False)
+    await daily_stats_manager.update('new_words')
 
 
 @user_new_words_router.callback_query(F.data == 'add_new_words')
@@ -147,19 +149,22 @@ async def add_new_words_selecting_section(callback: CallbackQuery, state: FSMCon
 
 @user_new_words_router.callback_query(StateFilter(WordsLearningFSM.add_words_to_learn))
 async def add_new_words_selected_section(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
     section = callback.data
     user_id = callback.from_user.id
     user_added_subsections = await user_words_manager.get_added_subsections_by_user(user_id=user_id)
     subsections = await words_manager.get_subsection_names(section=section)
     buttons = [subsection for subsection in subsections if subsection not in user_added_subsections]
-    await callback.message.edit_text(
-        MessageTexts.SELECT_SUBSECTION_WORDS.value,
-        reply_markup=await keyboard_builder(1, *buttons,  # subsection buttons
-                                            back_to_sections=BasicButtons.BACK,
-                                            back_to_main_menu_new_words=BasicButtons.MAIN_MENU_NEW_WORDS))
-    await state.set_state(WordsLearningFSM.selecting_subsection)
-    await update_state_data(state, section=section, subsection=None)
+    if len(buttons) > 0:
+        await callback.answer()
+        await callback.message.edit_text(
+            MessageTexts.SELECT_SUBSECTION_WORDS.value,
+            reply_markup=await keyboard_builder(1, *buttons,  # subsection buttons
+                                                back_to_sections=BasicButtons.BACK,
+                                                back_to_main_menu_new_words=BasicButtons.MAIN_MENU_NEW_WORDS))
+        await state.set_state(WordsLearningFSM.selecting_subsection)
+        await update_state_data(state, section=section, subsection=None)
+    elif len(buttons) == 0:
+        await callback.answer('В этом разделе больше нет тем для добавления🧐')
 
 
 @user_new_words_router.callback_query(StateFilter(WordsLearningFSM.selecting_subsection))
