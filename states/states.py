@@ -65,5 +65,6 @@ class AdminFSM(StatesGroup):
     # Users
     see_user_info = State()
     see_user_management = State()
+    user_managing = State()
     adding_words_to_user = State()
     deleting_user = State()
