@@ -14,11 +14,11 @@ class TestingExercise(Base):
     answer = Column(String, nullable=False)
 
 
-class IrregularVerb(Base):
-    __tablename__ = 'irregular_verbs'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    russian = Column(String, nullable=False)
-    english = Column(String, nullable=False)
+# class IrregularVerb(Base):
+#     __tablename__ = 'irregular_verbs'
+#     id = Column(Integer, primary_key=True, autoincrement=True)
+#     russian = Column(String, nullable=False)
+#     english = Column(String, nullable=False)
 
 
 class NewWords(Base):
