@@ -16,7 +16,7 @@ user_manager = UserManager()
 
 
 @user_reminder_router.message(Command(commands=["reminder"]), ~StateFilter(default_state))
-async def stats_user_command(message: Message):
+async def reminder_command(message: Message):
     user_id = message.from_user.id
     info = await user_manager.get_user(user_id)
     reminder_time = info.get('reminder_time')
@@ -87,6 +87,9 @@ async def set_reminder_time(message: Message):
         time = datetime.strptime(message.text, "%H:%M").time()
         await user_manager.set_reminder_time(user_id=message.from_user.id, time=time)
         await schedule_reminders()
+        await message.delete()
         await message.answer(f'Отлично, буду напоминать тебе заниматься каждый день в {time.strftime("%H:%M")}')
     except Exception as e:
-        await message.answer(str(e))
+        await message.delete()
+        await message.answer(f'\"{message.text}\" не соответствует формату HH:MM')
+

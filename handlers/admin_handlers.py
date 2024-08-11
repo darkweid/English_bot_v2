@@ -10,7 +10,8 @@ from datetime import datetime, date, timedelta
 from keyboards import keyboard_builder, keyboard_builder_users
 from lexicon import (AdminMenuButtons, MessageTexts, BasicButtons, TestingSections, testing_section_mapping,
                      NewWordsSections, new_words_section_mapping)
-from utils import update_state_data, delete_scheduled_broadcasts, schedule_broadcast, send_message_to_user, send_long_message
+from utils import (update_state_data, delete_scheduled_broadcasts, schedule_broadcast, send_message_to_user,
+                   send_long_message)
 
 config: Config = load_config()
 ADMINS: list = config.tg_bot.admin_ids
@@ -60,7 +61,7 @@ async def admin_exit(callback: CallbackQuery, state: FSMContext):
     await state.set_state(UserFSM.default)
 
 
-@admin_router.callback_query((F.data == 'stats_users_table_close'))  # close without change state
+@admin_router.callback_query((F.data == 'admin_close_without_state_changes'))  # close without change state
 async def close_message_without_state_changes(callback: CallbackQuery):
     await callback.message.delete()
     await callback.answer()
@@ -185,7 +186,7 @@ async def admin_adding_sentence_testing(message: Message, state: FSMContext):
             for group_sentences in sentences:
                 test, answer = group_sentences.split('=+=')
                 await testing_manager.add_testing_exercise(section=section, subsection=subsection, test=test,
-                                                            answer=answer)
+                                                           answer=answer)
             await message.answer(
                 f'✅Успешно добавлено {count_sentences} упражнений, можешь отправить ещё',
                 reply_markup=await keyboard_builder(1, AdminMenuButtons.EXIT))
@@ -193,7 +194,7 @@ async def admin_adding_sentence_testing(message: Message, state: FSMContext):
         else:
             test, answer = message.text.split('=+=')
             await testing_manager.add_testing_exercise(section=section, subsection=subsection, test=test,
-                                                        answer=answer)
+                                                       answer=answer)
 
             await message.answer('✅Упражнение успешно добавлено, можешь отправить ещё и я добавлю',
                                  reply_markup=await keyboard_builder(1, AdminMenuButtons.EXIT))
@@ -229,7 +230,7 @@ async def admin_edit_sentence_testing(message: Message, state: FSMContext):
     try:
         test, answer = message.text.split('=+=')
         await testing_manager.edit_testing_exercise(section=section, subsection=subsection, test=test, answer=answer,
-                                                     index=index_testing_edit)
+                                                    index=index_testing_edit)
         await message.answer('✅Успешно изменено',
                              reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU))
         await state.set_state(AdminFSM.default)
@@ -285,7 +286,7 @@ async def admin_users(callback: CallbackQuery, state: FSMContext):
 
     await callback.message.answer(rank_info,
                                   reply_markup=await keyboard_builder(1,
-                                                                      stats_users_table_close=AdminMenuButtons.CLOSE))
+                                                                      admin_close_without_state_changes=AdminMenuButtons.CLOSE))
     await callback.message.answer('Выбери пользователя:',
                                   reply_markup=await keyboard_builder_users(users))
     await state.set_state(AdminFSM.see_user_management)
@@ -300,18 +301,20 @@ async def admin_see_user_info_close_message(callback: CallbackQuery):
 async def admin_see_user_info(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     user_id = int(callback.data)
-    await update_state_data(state, admin_user_id_add_words=user_id)
+    await update_state_data(state, admin_user_id_words_management=user_id)
     info = await user_manager.get_user_info_text(user_id)
     await callback.message.answer(info,
                                   reply_markup=await keyboard_builder(1,
                                                                       AdminMenuButtons.ADD_WORDS_TO_USER_LEARNING,
+                                                                      AdminMenuButtons.SEE_INDIVIDUAL_WORDS,
+                                                                      AdminMenuButtons.DEL_INDIVIDUAL_WORDS,
                                                                       AdminMenuButtons.DEL_USER,
                                                                       AdminMenuButtons.CLOSE))
-    await state.set_state(AdminFSM.adding_words_to_user)
+    await state.set_state(AdminFSM.user_managing)
 
 
 @admin_router.callback_query(F.data == AdminMenuButtons.ADD_WORDS_TO_USER_LEARNING.value,
-                             StateFilter(AdminFSM.adding_words_to_user))
+                             StateFilter(AdminFSM.user_managing))
 async def admin_add_words_to_user(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await callback.message.edit_text(
@@ -327,7 +330,7 @@ async def admin_add_words_to_user(callback: CallbackQuery, state: FSMContext):
 @admin_router.message(StateFilter(AdminFSM.adding_words_to_user))
 async def admin_adding_words_to_user(message: Message, state: FSMContext):
     try:
-        user_id = (await state.get_data()).get('admin_user_id_add_words')
+        user_id = (await state.get_data()).get('admin_user_id_words_management')
         exercises = message.text.split('\n')
         count_exercises = len(exercises)
         if count_exercises > 1:
@@ -360,6 +363,40 @@ async def admin_adding_words_to_user(message: Message, state: FSMContext):
         await message.answer(str(e))
 
 
+@admin_router.callback_query(F.data == AdminMenuButtons.SEE_INDIVIDUAL_WORDS.value,
+                             StateFilter(AdminFSM.user_managing))
+async def admin_see_individual_words(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    data = await state.get_data()
+    user_id = data.get('admin_user_id_words_management')
+    result = await words_manager.get_new_words_exercises(user_id)
+    if result:
+        await callback.answer()
+        await send_long_message(callback,
+                                f'Вот все слова пользователя:\n{result}',
+                                reply_markup=await keyboard_builder(1, admin_close_without_state_changes=AdminMenuButtons.CLOSE))
+    else:
+        await callback.answer()
+        await callback.message.edit_text('У пользователя еще нет индивидуальных слов',
+                                         reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
+                                                                             AdminMenuButtons.EXIT))
+
+
+@admin_router.callback_query(F.data == AdminMenuButtons.DEL_INDIVIDUAL_WORDS.value,
+                             StateFilter(AdminFSM.user_managing))
+async def admin_del_individual_words(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.edit_text(
+        f"""Введи номер слова для удаления у пользователя
+Если хочешь удалить несколько слов - введи номера слов через запятую""",
+        reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
+                                            AdminMenuButtons.EXIT))
+    data = await state.get_data()
+    user_id = data.get('admin_user_id_words_management')
+    await update_state_data(state, admin_subsection=user_id, admin_section=user_id)
+    await state.set_state(AdminFSM.deleting_exercise_words)
+
+
 async def get_word_declension(count: int) -> str:
     if count % 10 == 1 and count % 100 != 11:
         return f"{count} слово"
@@ -370,7 +407,7 @@ async def get_word_declension(count: int) -> str:
 
 
 @admin_router.callback_query(F.data == AdminMenuButtons.DEL_USER.value)
-async def admin_delete_user(callback: CallbackQuery, state: FSMContext):
+async def admin_delete_user(callback: CallbackQuery, state: FSMContext):  # ToDo
     await callback.answer()
 
 
@@ -544,7 +581,7 @@ async def admin_editing_words(message: Message, state: FSMContext):
 
 
 @admin_router.message(StateFilter(AdminFSM.ready_to_edit_exercise_words))  # EDIT words
-async def admin_edit_sentence_testing(message: Message, state: FSMContext):
+async def admin_edit_words(message: Message, state: FSMContext):
     data = await state.get_data()
     subsection, section, index_words_edit = data.get('admin_subsection'), data.get('admin_section'), data.get(
         'index_words_edit')
@@ -563,7 +600,7 @@ async def admin_edit_sentence_testing(message: Message, state: FSMContext):
 
 
 @admin_router.message(StateFilter(AdminFSM.deleting_exercise_words))  # DELETE
-async def admin_deleting_sentence_testing(message: Message, state: FSMContext):
+async def admin_deleting_words(message: Message, state: FSMContext):
     data = await state.get_data()
     subsection, section = data.get('admin_subsection'), data.get('admin_section')
     exercise_name = f'\"{section} - {subsection}\"'
@@ -581,7 +618,7 @@ async def admin_deleting_sentence_testing(message: Message, state: FSMContext):
             reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU, AdminMenuButtons.EXIT))
         await words_manager.delete_new_words_exercise(section=section, subsection=subsection, index=index)
     elif len(indexes) > 1:
-        await message.answer(f"""✅Предложения № {str(indexes)}\n <b>Удалены</b> из раздела \n{exercise_name}""",
+        await message.answer(f"""✅Слова № {str(indexes)}\n <b>Удалены</b> из раздела \n{exercise_name}""",
                              reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU, AdminMenuButtons.EXIT))
         for index in indexes:
             await words_manager.delete_new_words_exercise(section=section, subsection=subsection, index=index)
@@ -655,6 +692,7 @@ async def adding_broadcast_date_time(message: Message, state: FSMContext):
         datetime.strptime(message.text, '%H:%M %d.%m.%Y')
         await state.update_data(broadcast_date_time=message.text)
         await state.set_state(AdminFSM.broadcasting_set_text)
+        await message.delete()
         await message.answer(
             f'Хорошо, я сделаю рассылку\n{message.text}\n\nТеперь отправь мне текст, который нужно будет разослать')
     except Exception as e:
@@ -669,6 +707,4 @@ async def adding_broadcast_text(message: Message, state: FSMContext):
     text = message.text
     await schedule_broadcast(date_time=date_time, text=text)
     await message.answer('Отлично. Рассылка будет отправлена в указанное время')
-
-
-
+    await state.set_state(AdminFSM.default)
