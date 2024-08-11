@@ -584,10 +584,15 @@ class UserManager(DatabaseManager):
     async def add_user(self, user_id, full_name, tg_login):
         async with self.db as session:
             async with session.begin():
-                result = await session.execute(select(User.user_id).filter(User.user_id == user_id))
+                result = await session.execute(select(User).filter(User.user_id == user_id))
                 existing_user = result.scalar_one_or_none()
                 if existing_user:
-                    print(f"User with user_id {user_id}:{full_name} already exists.")
+                    if existing_user.full_name != full_name or existing_user.tg_login != tg_login:
+                        existing_user.full_name = full_name
+                        existing_user.tg_login = tg_login
+                        print(f"User {user_id}:{full_name} information updated.")
+                    else:
+                        print(f"User {user_id}:{full_name} already exists with the same information.")
                     return None
 
                 user = User(
