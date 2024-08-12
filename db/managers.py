@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.future import select
 from sqlalchemy import func, update, delete, not_, desc, distinct
@@ -9,16 +11,7 @@ from db.init import engine
 from datetime import datetime, date, timedelta
 import random
 
-# import logging
-#
-# logging.basicConfig()
-# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-# logging.getLogger('sqlalchemy.dialects').setLevel(logging.INFO)
-# logging.getLogger('sqlalchemy.pool').setLevel(logging.INFO)
-# logging.getLogger('sqlalchemy.orm').setLevel(logging.INFO)
-# logging.getLogger('sqlalchemy.dialects.sqlite').setLevel(logging.INFO)
-# logging.getLogger('sqlalchemy.orm.mapper').setLevel(logging.INFO)
-
+logger = logging.getLogger(__name__)
 SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -588,9 +581,9 @@ class UserManager(DatabaseManager):
                     if existing_user.full_name != full_name or existing_user.tg_login != tg_login:
                         existing_user.full_name = full_name
                         existing_user.tg_login = tg_login
-                        print(f"User {user_id}:{full_name} information updated.")
+                        logger.info(f'User {user_id}:{full_name} information updated.')
                     else:
-                        print(f"User {user_id}:{full_name} already exists with the same information.")
+                        logger.info(f'User {user_id}:{full_name} already exists with the same information.')
                     return None
 
                 user = User(
@@ -602,7 +595,7 @@ class UserManager(DatabaseManager):
                     time_zone=None
                 )
                 session.add(user)
-                print(f"User {full_name} added successfully.")
+                logger.info(f'User {full_name} added successfully.')
                 return None
 
     async def set_timezone(self, user_id, timezone):
