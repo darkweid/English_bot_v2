@@ -14,6 +14,9 @@ logging.basicConfig(  # filename='bot.log',
     format='#%(levelname)-8s '
            '[%(asctime)s] - %(name)s - %(message)s')
 logger = logging.getLogger(__name__)
+sqlalchemy_logger = logging.getLogger('sqlalchemy.engine')
+sqlalchemy_logger.setLevel(logging.INFO)
+
 config: Config = load_config()
 BOT_TOKEN: str = config.tg_bot.token
 REDIS_DSN: str = config.tg_bot.redis
