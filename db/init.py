@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # DATABASE_URL = "sqlite+aiosqlite:///./english_bot.db"
-DATABASE_URL = "postgresql+asyncpg://superuser:superpassword@localhost/data"
+DATABASE_URL = "postgresql+asyncpg://superuser:superpassword@postgres:5432/data"
 
 
 engine = create_async_engine(DATABASE_URL, echo=True)
