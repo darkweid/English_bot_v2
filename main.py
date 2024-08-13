@@ -9,6 +9,10 @@ from keyboards.set_menu import set_main_menu
 from utils import send_message_to_admin, scheduler, schedule_reminders, init_bot_instance, get_bot_instance
 from db import init_db
 
+logging.basicConfig(  # filename='bot.log',
+    level=logging.INFO,
+    format='#%(levelname)-8s '
+           '[%(asctime)s] - %(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 config: Config = load_config()
 BOT_TOKEN: str = config.tg_bot.token
@@ -16,14 +20,8 @@ REDIS_DSN: str = config.tg_bot.redis
 ADMINS: list = config.tg_bot.admin_ids
 
 
-
 async def main():
     try:
-        logging.basicConfig(  # filename='bot.log',
-            level=logging.INFO,
-            format='#%(levelname)-8s '
-                   '[%(asctime)s] - %(name)s - %(message)s')
-
         logger.info('Starting bot')
 
         # redis: Redis = Redis(host='localhost')
