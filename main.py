@@ -51,7 +51,7 @@ async def main():
         await set_main_menu(bot)
         await bot.delete_webhook(drop_pending_updates=True)
         await send_message_to_admin(text='🟢 Бот запущен 🟢')
-        # await on_startup()
+        await on_startup()
         await dp.start_polling(bot)
     except Exception as e:
         logger.exception("Ошибка: %s", str(e))
@@ -61,9 +61,9 @@ async def main():
         await send_message_to_admin(text='🟥 Бот остановлен 🟥')
 
 
-# async def on_startup():
-#     scheduler.start()
-#     await schedule_reminders()
+async def on_startup():
+    scheduler.start()
+    await schedule_reminders()
 
 
 if __name__ == "__main__":
