@@ -189,7 +189,7 @@ async def admin_adding_sentence_testing(message: Message, state: FSMContext):
                                                            answer=answer)
             await message.answer(
                 f'✅Успешно добавлено {count_sentences} упражнений, можешь отправить ещё',
-                reply_markup=await keyboard_builder(1, AdminMenuButtons.EXIT))
+                reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU, AdminMenuButtons.EXIT))
 
         else:
             test, answer = message.text.split('=+=')
@@ -197,7 +197,8 @@ async def admin_adding_sentence_testing(message: Message, state: FSMContext):
                                                        answer=answer)
 
             await message.answer('✅Упражнение успешно добавлено, можешь отправить ещё и я добавлю',
-                                 reply_markup=await keyboard_builder(1, AdminMenuButtons.EXIT))
+                                 reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
+                                                                     AdminMenuButtons.EXIT))
 
     except Exception as e:
         await message.answer('❗️Что-то пошло не так, попробуй еще раз\n\nПроверь формат текста',
@@ -449,10 +450,12 @@ async def new_words_selected_section_admin(callback: CallbackQuery, state: FSMCo
         await callback.message.edit_text(MessageTexts.ERROR.value)
         await state.set_state(AdminFSM.default)
         return
+    subsections = await words_manager.get_subsection_names(section=section)
+    buttons = [subsection for subsection in subsections]
 
     await callback.message.edit_text(
         MessageTexts.SELECT_SUBSECTION_WORDS.value,
-        reply_markup=await keyboard_builder(1, *[button.value for button in section],  # subsection buttons
+        reply_markup=await keyboard_builder(1, *buttons,  # subsection buttons
                                             AdminMenuButtons.ADD_NEW_SECTION,
                                             AdminMenuButtons.MAIN_MENU,
                                             back_to_sections_new_words_admin=BasicButtons.BACK))
@@ -562,7 +565,7 @@ async def admin_adding_words(message: Message, state: FSMContext):
                                                            english=english)
             await message.answer(
                 f'✅Успешно добавлено {count_sentences} упражнений, можешь отправить ещё',
-                reply_markup=await keyboard_builder(1, AdminMenuButtons.EXIT))
+                reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU, AdminMenuButtons.EXIT))
 
         else:
             russian, english = message.text.split('=+=')
@@ -570,7 +573,8 @@ async def admin_adding_words(message: Message, state: FSMContext):
                                                        english=english)
 
             await message.answer('✅Упражнение успешно добавлено, можешь отправить ещё и я добавлю',
-                                 reply_markup=await keyboard_builder(1, AdminMenuButtons.EXIT))
+                                 reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
+                                                                     AdminMenuButtons.EXIT))
 
     except Exception as e:
         await message.answer('❗️Что-то пошло не так, попробуй еще раз\n\nПроверь формат текста',
