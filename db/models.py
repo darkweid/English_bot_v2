@@ -32,7 +32,9 @@ class NewWords(Base):
 
 class UserWordsLearning(Base):
     __tablename__ = 'user_words_learning'
-    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(BigInteger,
+                                         ForeignKey('users.user_id', ondelete='CASCADE'),
+                                         primary_key=True, nullable=False, index=True)
     section: Mapped[str] = mapped_column(String, primary_key=True, nullable=False, index=True)
     subsection: Mapped[str] = mapped_column(String, primary_key=True, nullable=False, index=True)
     exercise_id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
@@ -48,7 +50,8 @@ class UserWordsLearning(Base):
     __table_args__ = (
         ForeignKeyConstraint(
             ['section', 'subsection', 'exercise_id'],
-            ['new_words.section', 'new_words.subsection', 'new_words.id']
+            ['new_words.section', 'new_words.subsection', 'new_words.id'],
+            ondelete='CASCADE'
         ),
     )
 
@@ -59,7 +62,10 @@ Index('ix_user_section', UserWordsLearning.user_id, UserWordsLearning.section,
 
 class UserProgress(Base):
     __tablename__ = 'user_progress'
-    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(BigInteger,
+                                         ForeignKey('users.user_id', ondelete='CASCADE'),
+                                         primary_key=True,
+                                         nullable=False)
     exercise_type: Mapped[str] = mapped_column(String, primary_key=True, nullable=False)
     exercise_section: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
     exercise_subsection: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
