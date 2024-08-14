@@ -44,6 +44,8 @@ async def reminder_command(message: Message):
 
 
 @user_reminder_router.callback_query(F.data == BasicButtons.CHANGE_TIME_ZONE.value)
+@user_reminder_router.callback_query(F.data == 'set_tz_new_user')
+
 async def choose_timezone(callback: CallbackQuery):
     await callback.answer()
     await callback.message.answer(MessageTexts.CHOOSE_TIMEZONE.value,
