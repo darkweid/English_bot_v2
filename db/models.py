@@ -1,7 +1,7 @@
 from datetime import date, datetime, time
 from typing import List, Optional
-from sqlalchemy import Column, Integer, String, Date, DateTime, Time, Boolean, ForeignKey, ForeignKeyConstraint, Index, \
-    BigInteger
+from sqlalchemy import (Integer, String, Date, DateTime, Time, Boolean, ForeignKey,
+                        ForeignKeyConstraint, Index, BigInteger)
 from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase
 
 
