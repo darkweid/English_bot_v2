@@ -78,7 +78,7 @@ async def choosing_subsection_testing(callback: CallbackQuery, state: FSMContext
     section = data.get('section')
     subsection = callback.data
     await callback.message.edit_text(f"""Ты выбрал <b>«{section} - {subsection}»</b>
-Готов проходить?""", reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
+Are you ready?""", reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
                                                          ready_for_test=BasicButtons.READY))
     await update_state_data(state, subsection=subsection)
     await state.set_state(TestingFSM.selected_subsection)

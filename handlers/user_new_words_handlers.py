@@ -21,7 +21,7 @@ daily_stats_manager = DailyStatisticsManager()
 async def start_new_words(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
-    await callback.message.edit_text('Что хочешь делать?',
+    await callback.message.edit_text('Выбирай:',
                                      reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
                                                                          learn_new_words=BasicButtons.LEARN_ADDED_WORDS,
                                                                          add_new_words=BasicButtons.ADD_WORDS,
@@ -32,7 +32,7 @@ async def start_new_words(callback: CallbackQuery, state: FSMContext):
 @user_new_words_router.callback_query(F.data == 'back_to_main_menu_new_words')
 async def start_new_words(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    await callback.message.edit_text('Что хочешь делать?',
+    await callback.message.edit_text('Выбирай',
                                      reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
                                                                          learn_new_words=BasicButtons.LEARN_ADDED_WORDS,
                                                                          add_new_words=BasicButtons.ADD_WORDS,
