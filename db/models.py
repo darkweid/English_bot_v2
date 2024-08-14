@@ -6,25 +6,34 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase
 
 
 class Base(DeclarativeBase):
-    pass
+    repr_cols_num = 3
+    repr_cols = tuple()
+
+    def __repr__(self):
+        cols = []
+        for index, col in enumerate(self.__table__.columns.keys()):
+            if col in self.repr_cols or index < self.repr_cols_num:
+                cols.append(f"{col}={getattr(self, col)}")
+
+        return f"<{self.__class__.__name__} {', '.join(cols)}>"
 
 
 class TestingExercise(Base):
     __tablename__ = 'testing_exercises'
-    section: Mapped[str] = mapped_column(String, primary_key=True, nullable=False)
-    subsection: Mapped[str] = mapped_column(String, primary_key=True, nullable=False)
+    section: Mapped[str] = mapped_column(String(64), primary_key=True, nullable=False)
+    subsection: Mapped[str] = mapped_column(String(64), primary_key=True, nullable=False)
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
-    test: Mapped[str] = mapped_column(String, nullable=False)
-    answer: Mapped[str] = mapped_column(String, nullable=False)
+    test: Mapped[str] = mapped_column(String(256), nullable=False)
+    answer: Mapped[str] = mapped_column(String(256), nullable=False)
 
 
 class NewWords(Base):
     __tablename__ = 'new_words'
-    section: Mapped[str] = mapped_column(String, primary_key=True, nullable=False)
-    subsection: Mapped[str] = mapped_column(String, primary_key=True, nullable=False)
+    section: Mapped[str] = mapped_column(String(64), primary_key=True, nullable=False)
+    subsection: Mapped[str] = mapped_column(String(64), primary_key=True, nullable=False)
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
-    russian: Mapped[str] = mapped_column(String, nullable=False)
-    english: Mapped[str] = mapped_column(String, nullable=False)
+    russian: Mapped[str] = mapped_column(String(256), nullable=False)
+    english: Mapped[str] = mapped_column(String(256), nullable=False)
     user_words: Mapped[List["UserWordsLearning"]] = relationship(
         back_populates="new_word"
     )
@@ -35,8 +44,8 @@ class UserWordsLearning(Base):
     user_id: Mapped[int] = mapped_column(BigInteger,
                                          ForeignKey('users.user_id', ondelete='CASCADE'),
                                          primary_key=True, nullable=False, index=True)
-    section: Mapped[str] = mapped_column(String, primary_key=True, nullable=False, index=True)
-    subsection: Mapped[str] = mapped_column(String, primary_key=True, nullable=False, index=True)
+    section: Mapped[str] = mapped_column(String(64), primary_key=True, nullable=False, index=True)
+    subsection: Mapped[str] = mapped_column(String(64), primary_key=True, nullable=False, index=True)
     exercise_id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     success: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -66,9 +75,9 @@ class UserProgress(Base):
                                          ForeignKey('users.user_id', ondelete='CASCADE'),
                                          primary_key=True,
                                          nullable=False)
-    exercise_type: Mapped[str] = mapped_column(String, primary_key=True, nullable=False)
-    exercise_section: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
-    exercise_subsection: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    exercise_type: Mapped[str] = mapped_column(String(64), primary_key=True, nullable=False)
+    exercise_section: Mapped[str] = mapped_column(String(64), primary_key=True, nullable=True)
+    exercise_subsection: Mapped[str] = mapped_column(String(64), primary_key=True, nullable=True)
     exercise_id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
     attempts: Mapped[int] = mapped_column(Integer, default=1)
     success: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -80,8 +89,8 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     registration_date: Mapped[datetime] = mapped_column(DateTime)
     user_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
-    full_name: Mapped[Optional[str]] = mapped_column(String)
-    tg_login: Mapped[Optional[str]] = mapped_column(String)
+    full_name: Mapped[Optional[str]] = mapped_column(String(256))
+    tg_login: Mapped[Optional[str]] = mapped_column(String(32))
     points: Mapped[int] = mapped_column(Integer, default=0)
     reminder_time: Mapped[Optional[time]] = mapped_column(Time)
     time_zone: Mapped[Optional[str]] = mapped_column(String)
