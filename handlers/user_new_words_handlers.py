@@ -227,7 +227,11 @@ async def stats_new_words(callback: CallbackQuery, state: FSMContext):
                        f'В активном изучении: {active_learning}\n'
                        f'Изучено: {learned}\n'
                        f'Правильных ответов: {success_rate:.0f}%\n\n')
-    if len(stats_text) > 4000:
+    if len(stats_text) == 0:
+        await callback.message.edit_text('У тебя еще нет статистики в изучении слов',
+                                         reply_markup=await keyboard_builder(1,
+                                                                             back_to_main_menu_new_words=BasicButtons.BACK))
+    elif len(stats_text) > 4000:
         await send_long_message(callback=callback, text=stats_text, delimiter='\n\n',
                                 reply_markup=await keyboard_builder(1, close_message=BasicButtons.CLOSE))
     else:
