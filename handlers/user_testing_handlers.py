@@ -79,9 +79,9 @@ async def choosing_subsection_testing(callback: CallbackQuery, state: FSMContext
     subsection = callback.data
     additional_rules = ''
     if subsection == PrepositionsSections.PREPOSITIONS_OF_THE_TIME.value:
-        additional_rules = '\n' + MessageTexts.PREPOSITIONS_OF_THE_TIME_RULES.value
+        additional_rules = '\n' + MessageTexts.PREPOSITIONS_OF_THE_TIME_RULES.value + '\n'
 
-    await callback.message.edit_text(f"""Ты выбрал <b>«{section} - {subsection}»</b>{additional_rules}
+    await callback.message.edit_text(f"""<b>«{subsection}»</b>{additional_rules}
 Are you ready?""", reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
                                                        ready_for_test=BasicButtons.READY))
     await update_state_data(state, subsection=subsection)
