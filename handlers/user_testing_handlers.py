@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery, Message
 from states import TestingFSM
 from utils import send_message_to_admin, update_state_data
 from lexicon import (MessageTexts, BasicButtons, TestingSections, MainMenuButtons, list_right_answers,
-                     testing_section_mapping)
+                     testing_section_mapping, PrepositionsSections)
 from db import TestingManager, UserProgressManager, DailyStatisticsManager
 from keyboards import keyboard_builder
 
@@ -77,9 +77,13 @@ async def choosing_subsection_testing(callback: CallbackQuery, state: FSMContext
     data = await state.get_data()
     section = data.get('section')
     subsection = callback.data
-    await callback.message.edit_text(f"""Ты выбрал <b>«{section} - {subsection}»</b>
+    additional_rules = ''
+    if subsection == PrepositionsSections.PREPOSITIONS_OF_THE_TIME.value:
+        additional_rules = '\n' + MessageTexts.PREPOSITIONS_OF_THE_TIME_RULES
+
+    await callback.message.edit_text(f"""Ты выбрал <b>«{section} - {subsection}»</b>{additional_rules}
 Are you ready?""", reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
-                                                         ready_for_test=BasicButtons.READY))
+                                                       ready_for_test=BasicButtons.READY))
     await update_state_data(state, subsection=subsection)
     await state.set_state(TestingFSM.selected_subsection)
 

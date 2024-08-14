@@ -86,6 +86,20 @@ class MessageTexts(Enum):
 Москва - UTC+3
 Омск - UTC+6
 Чикаго - UTC-5"""
+    PREPOSITIONS_OF_THE_TIME_RULES = """Впиши нужный предлог🐣
+Напомню правила:
+at - часы/минуты
+on - дни
+in - все, что больше: месяц, сезон, год и тд
+no - если предлог не нужен (да, такое бывает, например со словами last, next, this, every)\n
+Исключения:
+in the morning
+in the afternoon
+in the evening\n
+at night
+at Christmas\n
+on Monday morning
+on Friday evening"""
 
 
 class MainMenuButtons(Enum):
@@ -169,9 +183,9 @@ class PhrasesAndWordsSections(Enum):
 
 
 class PrepositionsSections(Enum):
-    PREPOSITIONS_OF_THE_TIME = 'prepositions of the time'
-    PREPOSITIONS_OF_PLACE = 'prepositions of place'
-    PREPOSITIONS_OF_AGENT_OR_INSTRUMENT = 'prepositions of agent or instrument'
+    PREPOSITIONS_OF_THE_TIME = 'Prepositions of the time'
+    PREPOSITIONS_OF_PLACE = 'Prepositions of place'
+    PREPOSITIONS_OF_AGENT_OR_INSTRUMENT = 'Prepositions of agent or instrument'
     PREPOSITIONS_OF_CAUSE_OR_REASON = 'Prepositions of Cause or Reason:'
 
 
