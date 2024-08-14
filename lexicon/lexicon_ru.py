@@ -203,7 +203,6 @@ testing_section_mapping = {
 
 class NewWordsSections(Enum):
     WORDS_BY_TOPIC = 'Words by topic'
-    IDIOMS = 'Idioms'
     PHRASAL_VERBS = 'Phrasal verbs'
 
 
@@ -225,11 +224,6 @@ class PhrasalVerbs(Enum):
     RELATIONSHIP_PHRASAL_VERBS = 'Relationship Phrasal Verbs'
 
 
-new_words_section_mapping = {
-    NewWordsSections.WORDS_BY_TOPIC.value: WordsByTopic,
-    NewWordsSections.IDIOMS.value: Idioms,
-    NewWordsSections.PHRASAL_VERBS.value: PhrasalVerbs
-}
 
 
 class AdminMenuButtons(Enum):
