@@ -31,7 +31,7 @@ async def process_start_command(message: Message, state: FSMContext):
     await user_manager.add_user(user_id, full_name, tg_login)
     await message.answer(MessageTexts.WELCOME_NEW_USER.value.format(user_name=full_name),
                          link_preview_options=LinkPreviewOptions(is_disabled=True),
-                         reply_markup=await keyboard_builder(1, BasicButtons.TURN_ON_REMINDER))
+                         reply_markup=await keyboard_builder(1, set_tz_new_user=BasicButtons.TURN_ON_REMINDER))
     await message.answer(MessageTexts.WELCOME_EXISTING_USER.value,
                          reply_markup=await keyboard_builder(1, *[button.value for button in MainMenuButtons]))
     await send_message_to_admin(text=f"""Зарегистрирован новый пользователь.

@@ -77,7 +77,8 @@ async def learn_new_words(callback: CallbackQuery, state: FSMContext, hello_mess
 {MessageTexts.NO_WORDS_TO_LEARN_TODAY.value}
 Cлов/идиом в активном изучении: {count_user_exercise}
 Изучено всего: {learned_words}""",
-                                      reply_markup=await keyboard_builder(1, BasicButtons.CLOSE))
+                                      reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU,
+                                                                          BasicButtons.CLOSE))
     else:
         if hello_message:
             await callback.message.edit_text(f"""{MessageTexts.NEW_WORDS_HELLO.value}
@@ -164,7 +165,7 @@ async def add_new_words_selected_section(callback: CallbackQuery, state: FSMCont
         await state.set_state(WordsLearningFSM.selecting_subsection)
         await update_state_data(state, section=section, subsection=None)
     elif len(buttons) == 0:
-        await callback.answer('В этом разделе больше нет тем для добавления🧐')
+        await callback.answer('В этом разделе больше нет тем для добавления 🧐')
 
 
 @user_new_words_router.callback_query(StateFilter(WordsLearningFSM.selecting_subsection))
