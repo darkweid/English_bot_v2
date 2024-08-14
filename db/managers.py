@@ -598,6 +598,11 @@ class UserManager(DatabaseManager):
                 logger.info(f'User {full_name} added successfully.')
                 return None
 
+    async def delete_user(self, user_id):
+        async with self.db as session:
+            async with session.begin():
+                await session.execute(delete(User)).where(User.user_id == user_id)
+
     async def set_timezone(self, user_id, timezone):
         async with self.db as session:
             async with session.begin():

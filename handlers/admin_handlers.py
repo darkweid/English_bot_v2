@@ -298,10 +298,11 @@ async def admin_see_user_info_close_message(callback: CallbackQuery):
 
 
 @admin_router.callback_query(StateFilter(AdminFSM.see_user_management))
+@admin_router.callback_query(F.data == 'dont_delete_user')
 async def admin_see_user_info(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     user_id = int(callback.data)
-    await update_state_data(state, admin_user_id_words_management=user_id)
+    await update_state_data(state, admin_user_id_management=user_id)
     info = await user_manager.get_user_info_text(user_id)
     await callback.message.answer(info,
                                   reply_markup=await keyboard_builder(1,
@@ -330,7 +331,7 @@ async def admin_add_words_to_user(callback: CallbackQuery, state: FSMContext):
 @admin_router.message(StateFilter(AdminFSM.adding_words_to_user))
 async def admin_adding_words_to_user(message: Message, state: FSMContext):
     try:
-        user_id = (await state.get_data()).get('admin_user_id_words_management')
+        user_id = (await state.get_data()).get('admin_user_id_management')
         exercises = message.text.split('\n')
         count_exercises = len(exercises)
         if count_exercises > 1:
@@ -368,13 +369,14 @@ async def admin_adding_words_to_user(message: Message, state: FSMContext):
 async def admin_see_individual_words(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     data = await state.get_data()
-    user_id = data.get('admin_user_id_words_management')
+    user_id = data.get('admin_user_id_management')
     result = await words_manager.get_new_words_exercises(user_id)
     if result:
         await callback.answer()
         await send_long_message(callback,
                                 f'Вот все слова пользователя:\n{result}',
-                                reply_markup=await keyboard_builder(1, admin_close_without_state_changes=AdminMenuButtons.CLOSE))
+                                reply_markup=await keyboard_builder(1,
+                                                                    admin_close_without_state_changes=AdminMenuButtons.CLOSE))
     else:
         await callback.answer()
         await callback.message.edit_text('У пользователя еще нет индивидуальных слов',
@@ -392,7 +394,7 @@ async def admin_del_individual_words(callback: CallbackQuery, state: FSMContext)
         reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
                                             AdminMenuButtons.EXIT))
     data = await state.get_data()
-    user_id = data.get('admin_user_id_words_management')
+    user_id = data.get('admin_user_id_management')
     await update_state_data(state, admin_subsection=user_id, admin_section=user_id)
     await state.set_state(AdminFSM.deleting_exercise_words)
 
@@ -407,8 +409,22 @@ async def get_word_declension(count: int) -> str:
 
 
 @admin_router.callback_query(F.data == AdminMenuButtons.DEL_USER.value)
-async def admin_delete_user(callback: CallbackQuery, state: FSMContext):  # ToDo
+async def admin_delete_user(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    await callback.message.edit_text("Удалить пользователя?",
+                                     reply_markup=await keyboard_builder(1, delete_user=AdminMenuButtons.YES,
+                                                                         dont_delete_user=AdminMenuButtons.NO))
+
+
+@admin_router.callback_query(F.data == 'delete_user')
+async def admin_delete_user(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    data = await state.get_data()
+    user_id = data.get('admin_user_id_management')
+    await user_manager.delete_user(user_id=user_id)
+    await callback.message.edit_text('Пользователь удалён',
+                                     reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
+                                                                         AdminMenuButtons.CLOSE))
 
 
 # New words
