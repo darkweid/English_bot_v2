@@ -9,7 +9,7 @@ from db import TestingManager, UserProgressManager, UserManager, NewWordsExercis
 from datetime import datetime, date, timedelta
 from keyboards import keyboard_builder, keyboard_builder_users
 from lexicon import (AdminMenuButtons, MessageTexts, BasicButtons, TestingSections, testing_section_mapping,
-                     NewWordsSections, new_words_section_mapping)
+                     NewWordsSections)
 from utils import (update_state_data, delete_scheduled_broadcasts, schedule_broadcast, send_message_to_user,
                    send_long_message)
 
@@ -444,12 +444,7 @@ async def new_words_selecting_section_admin(callback: CallbackQuery, state: FSMC
 @admin_router.callback_query(StateFilter(AdminFSM.select_section_words))
 async def new_words_selected_section_admin(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    section_name = callback.data
-    section = new_words_section_mapping.get(section_name)
-    if section is None:
-        await callback.message.edit_text(MessageTexts.ERROR.value)
-        await state.set_state(AdminFSM.default)
-        return
+    section = callback.data
     subsections = await words_manager.get_subsection_names(section=section)
     buttons = [subsection for subsection in subsections]
 
@@ -460,7 +455,7 @@ async def new_words_selected_section_admin(callback: CallbackQuery, state: FSMCo
                                             AdminMenuButtons.MAIN_MENU,
                                             back_to_sections_new_words_admin=BasicButtons.BACK))
     await state.set_state(AdminFSM.select_subsection_words)
-    await update_state_data(state, admin_section=section_name, admin_subsection=None)
+    await update_state_data(state, admin_section=section, admin_subsection=None)
 
 
 @admin_router.callback_query(StateFilter(AdminFSM.select_subsection_words))
