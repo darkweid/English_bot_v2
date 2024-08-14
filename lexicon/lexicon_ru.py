@@ -172,7 +172,7 @@ class ConstructionsSections(Enum):
 
 
 class PhrasesAndWordsSections(Enum):
-    HOW_MUCH_HOW_MANY = 'how much how many'
+    HOW_MUCH_HOW_MANY = 'how much / how many'
     LITTLE_VS_FEW = 'little VS few'
     SOME_VS_ANY = 'some VS any'
     ENOUGH_VS_TOO = 'enough VS too'
@@ -186,7 +186,7 @@ class PrepositionsSections(Enum):
     PREPOSITIONS_OF_THE_TIME = 'Prepositions of the time'
     PREPOSITIONS_OF_PLACE = 'Prepositions of place'
     PREPOSITIONS_OF_AGENT_OR_INSTRUMENT = 'Prepositions of agent or instrument'
-    PREPOSITIONS_OF_CAUSE_OR_REASON = 'Prepositions of Cause or Reason:'
+    PREPOSITIONS_OF_CAUSE_OR_REASON = 'Prepositions of Cause or Reason'
 
 
 class ModalVerbsSections(Enum):
