@@ -1,12 +1,14 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from config_data.config import Config, load_config
 from .models import Base
 import logging
 
-logger = logging.getLogger(__name__)
-# DATABASE_URL = "sqlite+aiosqlite:///./english_bot.db"
-DATABASE_URL = "postgresql+asyncpg://superuser:superpassword@postgres:5432/data"
+config: Config = load_config()
+POSTGRES_DSN: str = config.tg_bot.postgres_dsn
 
-engine = create_async_engine(DATABASE_URL, echo=False)
+logger = logging.getLogger(__name__)
+
+engine = create_async_engine(POSTGRES_DSN, echo=False)
 SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
