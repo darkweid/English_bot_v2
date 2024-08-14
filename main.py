@@ -19,7 +19,7 @@ sqlalchemy_logger.setLevel(logging.INFO)
 
 config: Config = load_config()
 BOT_TOKEN: str = config.tg_bot.token
-REDIS_DSN: str = config.tg_bot.redis
+REDIS_DSN: str = config.tg_bot.redis_dsn
 ADMINS: list = config.tg_bot.admin_ids
 
 
