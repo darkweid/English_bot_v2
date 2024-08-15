@@ -176,7 +176,7 @@ async def add_new_words_selecting_subsection(callback: CallbackQuery, state: FSM
     subsection = callback.data
     quantity = await words_manager.get_count_new_words_exercises_in_subsection(section=section, subsection=subsection)
     word_declension = await get_word_declension(quantity)
-    await callback.message.edit_text(f"""{subsection} – {section}
+    await callback.message.edit_text(f"""«{subsection}»\n
 В теме {word_declension}
 Добавить в изучаемые?""",
                                      reply_markup=await keyboard_builder(1, add_words=BasicButtons.YES,
