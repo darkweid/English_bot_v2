@@ -32,7 +32,7 @@ async def start_new_words(callback: CallbackQuery, state: FSMContext):
 @user_new_words_router.callback_query(F.data == 'back_to_main_menu_new_words')
 async def start_new_words(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    await callback.message.edit_text('Выбирай',
+    await callback.message.edit_text('Выбирай:',
                                      reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
                                                                          learn_new_words=BasicButtons.LEARN_ADDED_WORDS,
                                                                          add_new_words=BasicButtons.ADD_WORDS,
@@ -175,8 +175,9 @@ async def add_new_words_selecting_subsection(callback: CallbackQuery, state: FSM
     section = user_data.get('section')
     subsection = callback.data
     quantity = await words_manager.get_count_new_words_exercises_in_subsection(section=section, subsection=subsection)
-    await callback.message.edit_text(f"""Ты выбрал тему {subsection} в разделе {section}
-В теме {quantity} {'идиом' if section == NewWordsSections.IDIOMS.value else 'слов'}
+    word_declension = await get_word_declension(quantity)
+    await callback.message.edit_text(f"""{subsection} – {section}
+В теме {word_declension}
 Добавить в изучаемые?""",
                                      reply_markup=await keyboard_builder(1, add_words=BasicButtons.YES,
                                                                          do_not_add_words=BasicButtons.NO,
@@ -239,3 +240,12 @@ async def stats_new_words(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text(stats_text,
                                          reply_markup=await keyboard_builder(1,
                                                                              back_to_main_menu_new_words=BasicButtons.BACK))
+
+
+async def get_word_declension(count: int) -> str:
+    if count % 10 == 1 and count % 100 != 11:
+        return f"{count} слово"
+    elif 2 <= count % 10 <= 4 and not (12 <= count % 100 <= 14):
+        return f"{count} слова"
+    else:
+        return f"{count} слов"
