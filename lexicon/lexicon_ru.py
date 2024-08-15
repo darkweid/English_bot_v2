@@ -134,7 +134,7 @@ class BasicButtons(Enum):
 
     # New Words
     LEARN_ADDED_WORDS = 'Учить мои слова'
-    ADD_WORDS = 'Добавить новые слова'
+    ADD_WORDS = 'Выбрать набор слов'
     NEW_WORDS_PROGRESS = 'Посмотреть прогресс'
     MORE_ABOUT_SPACED_REPETITION = 'Подробнее про интервальное повторение'
 
