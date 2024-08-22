@@ -193,25 +193,23 @@ class UserWordsLearningManager(DatabaseManager):
                 select(UserWordsLearning)
                 .filter(
                     UserWordsLearning.user_id == user_id,
-                    UserWordsLearning.subsection != 'Idioms',
                     UserWordsLearning.section == exercise.new_word.section,
                     UserWordsLearning.subsection == exercise.new_word.subsection
                 )).options(joinedload(UserWordsLearning.new_word))
             all_words = (await session.execute(all_words)).scalars().all()
 
-        options = [word.new_word.english.capitalize() for word in all_words if
-                   word.new_word.english != exercise.new_word.english]
+        options = [word.new_word.russian.capitalize() for word in all_words if
+                   word.new_word.russian != exercise.new_word.russian]
         if len(options) < 3:
             all_words = (
                 select(UserWordsLearning)
                 .filter(
                     UserWordsLearning.user_id == user_id,
-                    UserWordsLearning.subsection != 'Idioms'
                 )).options(joinedload(UserWordsLearning.new_word))
 
             all_words = (await session.execute(all_words)).scalars().all()
-            options = [word.new_word.english.capitalize() for word in all_words if
-                       word.new_word.english != exercise.new_word.english]
+            options = [word.new_word.russian.capitalize() for word in all_words if
+                       word.new_word.russian != exercise.new_word.russian]
 
         options = random.sample(options, 3)
 

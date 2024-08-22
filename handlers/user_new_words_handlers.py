@@ -93,8 +93,8 @@ Cлов в активном изучении: {count_user_exercise}
         await update_state_data(state, words_section=exercise['section'], words_subsection=exercise['subsection'],
                                 words_exercise_id=exercise['exercise_id'], test=word_russian, answer=word_english)
 
-        await callback.message.answer(word_russian.capitalize(),
-                                      reply_markup=await keyboard_builder_words_learning(1, correct=word_english,
+        await callback.message.answer(word_english.capitalize(),
+                                      reply_markup=await keyboard_builder_words_learning(1, correct=word_russian,
                                                                                          options=options))
         await state.set_state(WordsLearningFSM.in_process)
 
