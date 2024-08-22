@@ -33,7 +33,8 @@ class TestingManager(DatabaseManager):
                 max_id = max_id.scalar() or 0
                 next_id = max_id + 1
 
-                exercise = TestingExercise(section=section, subsection=subsection, id=next_id, test=test, answer=answer)
+                exercise = TestingExercise(section=section, subsection=subsection, id=next_id, test=test,
+                                           answer=answer.replace(chr(160), ''))
                 session.add(exercise)
 
     async def get_testing_exercises(self, subsection: str):
