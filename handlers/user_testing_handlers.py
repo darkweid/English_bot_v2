@@ -125,7 +125,7 @@ async def in_process_testing(message: Message, state: FSMContext):
     section, subsection, exercise_id, user_id = data.get('section'), data.get('subsection'), data.get(
         'current_id'), message.from_user.id
     answer = data.get('current_answer')
-    if message.text.lower() == answer.lower():
+    if message.text.lower().replace(' ', '') == answer.lower().replace(' ', ''):
         first_try = await user_progress_manager.mark_exercise_completed(exercise_type='Testing',
                                                                         section=section,
                                                                         subsection=subsection,
