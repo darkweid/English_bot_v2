@@ -1,9 +1,12 @@
-import asyncio, random
+import asyncio
+import random
+import logging
 
 from aiogram import Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
+from aiogram.exceptions import TelegramBadRequest
 from states import WordsLearningFSM
 from utils import send_message_to_admin, update_state_data, send_long_message
 from lexicon import *
@@ -60,7 +63,10 @@ async def more_about_spaced_repetition_new_words(callback: CallbackQuery, state:
 @user_new_words_router.callback_query(F.data == 'close_rules_new_words')
 async def rules_new_words(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    await callback.message.delete()
+    try:
+        await callback.message.delete()
+    except TelegramBadRequest as e:
+        logging.error(f"Failed to delete message: {e}")
 
 
 @user_new_words_router.callback_query(F.data == 'learn_new_words')

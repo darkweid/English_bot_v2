@@ -1,9 +1,12 @@
 import asyncio
 import random
+import logging
+
 from aiogram import Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from aiogram.exceptions import TelegramBadRequest
 from states import TestingFSM
 from utils import send_message_to_admin, update_state_data
 from lexicon import (MessageTexts, BasicButtons, TestingSections, MainMenuButtons, list_right_answers,
@@ -28,7 +31,10 @@ async def rules_testing(callback: CallbackQuery):
 @user_testing_router.callback_query((F.data == 'close_rules_tests'))
 async def close_rules_testing(callback: CallbackQuery):
     await callback.answer()
-    await callback.message.delete()
+    try:
+        await callback.message.delete()
+    except TelegramBadRequest as e:
+        logging.error(f"Failed to delete message: {e}")
 
 
 @user_testing_router.callback_query((F.data == MainMenuButtons.TESTING.value))  # выбор раздела для прохождения теста
@@ -92,7 +98,10 @@ Are you ready?""", reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU
 async def chose_subsection_testing(callback: CallbackQuery, state: FSMContext, prev_message_delete: bool = True):
     await callback.answer()
     if prev_message_delete:
-        await callback.message.delete()
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest as e:
+            logging.error(f"Failed to delete message: {e}")
     else:
         pass
     data = await state.get_data()

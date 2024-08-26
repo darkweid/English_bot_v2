@@ -1,3 +1,6 @@
+import logging
+
+from aiogram.exceptions import TelegramBadRequest
 from aiogram import Router, F
 from config_data.config import Config, load_config
 from aiogram.filters import Command, StateFilter
@@ -54,7 +57,10 @@ async def admin_command(callback: CallbackQuery, state: FSMContext):
 @admin_router.callback_query((F.data == 'close_message_admin'), ~StateFilter(AdminFSM.see_user_info))
 @admin_router.callback_query((F.data == AdminMenuButtons.EXIT.value))
 async def admin_exit(callback: CallbackQuery, state: FSMContext):
-    await callback.message.delete()
+    try:
+        await callback.message.delete()
+    except TelegramBadRequest as e:
+        logging.error(f"Failed to delete message: {e}")
     await callback.answer('До скорых встреч 👋')
     await update_state_data(state, admin_section=None, admin_subsection=None, index_testing_edit=None,
                             index_testing_delete=None)
@@ -63,8 +69,11 @@ async def admin_exit(callback: CallbackQuery, state: FSMContext):
 
 @admin_router.callback_query((F.data == 'admin_close_without_state_changes'))  # close without change state
 async def close_message_without_state_changes(callback: CallbackQuery):
-    await callback.message.delete()
     await callback.answer()
+    try:
+        await callback.message.delete()
+    except TelegramBadRequest as e:
+        logging.error(f"Failed to delete message: {e}")
 
 
 @admin_router.callback_query((F.data == AdminMenuButtons.EXERCISES.value), StateFilter(AdminFSM.default))
@@ -295,7 +304,11 @@ async def admin_users(callback: CallbackQuery, state: FSMContext):
 
 @admin_router.callback_query(F.data == AdminMenuButtons.CLOSE.value, StateFilter(AdminFSM.see_user_management))
 async def admin_see_user_info_close_message(callback: CallbackQuery):
-    await callback.message.delete()
+    await callback.answer()
+    try:
+        await callback.message.delete()
+    except TelegramBadRequest as e:
+        logging.error(f"Failed to delete message: {e}")
 
 
 @admin_router.callback_query(StateFilter(AdminFSM.see_user_management))
