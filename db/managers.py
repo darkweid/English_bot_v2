@@ -746,4 +746,6 @@ async def calculate_next_review_date(success_attempts, total_attempts):
     success_rate = await calculate_success_rate(success_attempts, total_attempts)
     next_interval_days = await calculate_next_interval(success_attempts, success_rate)
     next_review_date = date.today() + timedelta(days=next_interval_days)
+    if next_review_date <= date.today():
+        next_review_date = date.today() + timedelta(days=1)
     return next_review_date
