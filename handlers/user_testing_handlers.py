@@ -156,7 +156,8 @@ async def in_process_testing(message: Message, state: FSMContext):
 С первой попытки: <b>{first_try_count}</b>""",
                                  reply_markup=await keyboard_builder(1, start_again_test=BasicButtons.START_AGAIN,
                                                                      choose_other_section_training=BasicButtons.CHOOSE_OTHER_SECTION))
-            await send_message_to_admin(f"""Пользователь @{message.from_user.username} выполнил тест
+            username = message.from_user.username or message.from_user.full_name
+            await send_message_to_admin(f"""Пользователь @{username} выполнил тест
 <b>{section} – {subsection}</b>\nС первой попытки <b>{first_try_count} из {success_count}</b>""")
         else:
             test, answer, id_exercise = exercise

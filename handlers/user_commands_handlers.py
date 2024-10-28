@@ -14,7 +14,6 @@ user_manager = UserManager()
 daily_stats_manager = DailyStatisticsManager()
 
 
-
 @user_commands_router.message(Command(commands=["reset_fsm"]))
 async def reset_fsm_command(message: Message, state: FSMContext):
     await state.clear()
@@ -34,8 +33,12 @@ async def process_start_command(message: Message, state: FSMContext):
                          reply_markup=await keyboard_builder(1, set_tz_new_user=BasicButtons.TURN_ON_REMINDER))
     await message.answer(MessageTexts.WELCOME_EXISTING_USER.value,
                          reply_markup=await keyboard_builder(1, *[button.value for button in MainMenuButtons]))
-    await send_message_to_admin(text=f"""Зарегистрирован новый пользователь.
-Имя: {message.from_user.full_name}\nТелеграм: @{message.from_user.username}\n""")
+    await send_message_to_admin(
+        text=f"""Зарегистрирован новый пользователь.
+Имя: {message.from_user.full_name}
+{'telegram: @' + message.from_user.username if tg_login else 'У пользователя нет ника'}"""
+    )
+
     await state.set_state(UserFSM.existing_user)
     await daily_stats_manager.update('new_user')
 
