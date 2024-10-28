@@ -1,8 +1,8 @@
 import logging
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlalchemy.future import select
-from sqlalchemy import func, update, delete, not_, desc, distinct
+# from sqlalchemy.future import select
+from sqlalchemy import select, func, update, delete, not_, desc, distinct
 from sqlalchemy.orm import joinedload
 
 from db.models import (TestingExercise, NewWords, UserProgress, User, UserWordsLearning,
@@ -614,7 +614,7 @@ class UserManager(DatabaseManager):
 
     async def get_all_users(self):
         async with self.db as session:
-            result = await session.execute(select(User))
+            result = await session.execute(select(User).order_by(User.id))
             users = result.scalars().all()  # Извлекаем все строки как объекты User
 
             # Создаем кортеж словарей с информацией о каждом пользователе
