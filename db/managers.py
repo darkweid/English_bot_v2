@@ -154,6 +154,9 @@ class NewWordsExerciseManager(DatabaseManager):
 
     async def get_new_words_exercises(self, subsection: str):
         async with self.db as session:
+            if isinstance(subsection, int):
+                subsection = str(subsection)
+
             res = await session.execute(
                 select(NewWords).filter_by(subsection=subsection).order_by(NewWords.id))
             exercises = res.scalars().all()
