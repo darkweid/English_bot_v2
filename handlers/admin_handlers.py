@@ -50,7 +50,9 @@ async def admin_command(callback: CallbackQuery, state: FSMContext):
                                                                          AdminMenuButtons.SEE_ACTIVITY_DAY,
                                                                          AdminMenuButtons.SEE_ACTIVITY_WEEK,
                                                                          AdminMenuButtons.SEE_ACTIVITY_MONTH,
-                                                                         AdminMenuButtons.USERS, AdminMenuButtons.EXIT))
+                                                                         AdminMenuButtons.USERS,
+                                                                         AdminMenuButtons.BROADCAST,
+                                                                         AdminMenuButtons.EXIT))
     await state.set_state(AdminFSM.default)
 
 
@@ -332,9 +334,11 @@ async def admin_see_user_info(callback: CallbackQuery, state: FSMContext):
                              StateFilter(AdminFSM.user_managing))
 async def admin_add_words_to_user(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    user_id = (await state.get_data()).get('admin_user_id_management')
+    user_full_name = (await user_manager.get_user(user_id=user_id)).get('full_name')
     await callback.message.edit_text(
-        f"""Введи идиому/слово и ответ к нему для добавления пользователю\n
-В формате: \nСлово=+=Word
+        f"""Добавление слов пользователю <b><i>{user_full_name}</i></b>\n
+Введи слово и перевод к нему <b><i>в формате: \nСлово=+=Word</i></b>
 \nМожно отправить несколько упражнений, тогда каждое упражнение должно начинаться с новой строки
 и сообщение должно содержать не более 4096 символов(лимит Telegram)""",
         reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
@@ -346,17 +350,20 @@ async def admin_add_words_to_user(callback: CallbackQuery, state: FSMContext):
 async def admin_adding_words_to_user(message: Message, state: FSMContext):
     try:
         user_id = (await state.get_data()).get('admin_user_id_management')
+        user_full_name = (await user_manager.get_user(user_id=user_id)).get('full_name')
         exercises = message.text.split('\n')
         count_exercises = len(exercises)
         if count_exercises > 1:
             for exercise in exercises:
+                word_declension = await get_word_declension(count_exercises)
                 russian, english = exercise.split('=+=')
                 await user_words_learning_manager.admin_add_words_to_learning(user_id=user_id, russian=russian,
                                                                               english=english)
             await message.answer(
-                f'✅Успешно добавлено {count_exercises} упражнений, можешь отправить ещё',
+                f"""✅Успешно добавлено {word_declension} 
+пользователю <b><i>{user_full_name}</i></b>, можешь отправить ещё и я добавлю""",
                 reply_markup=await keyboard_builder(1, AdminMenuButtons.EXIT))
-            word_declension = await get_word_declension(count_exercises)
+
             await send_message_to_user(user_id=user_id,
                                        text=f"""Тебе добавили {word_declension}
 для изучения. Заходи учить 😊""", learning_button=True)
@@ -366,8 +373,10 @@ async def admin_adding_words_to_user(message: Message, state: FSMContext):
             await user_words_learning_manager.admin_add_words_to_learning(user_id=user_id, russian=russian,
                                                                           english=english)
 
-            await message.answer('✅Упражнение успешно добавлено, можешь отправить ещё и я добавлю',
-                                 reply_markup=await keyboard_builder(1, AdminMenuButtons.EXIT))
+            await message.answer(
+                f"""✅Слово успешно добавлено пользователю 
+<b><i>{user_full_name}</i></b>, можешь отправить ещё и я добавлю""",
+                reply_markup=await keyboard_builder(1, AdminMenuButtons.EXIT))
             await send_message_to_user(user_id=user_id,
                                        text=f"""Тебе добавили 1 слово
 для изучения. Заходи учить 😊""", learning_button=True)
@@ -630,8 +639,8 @@ async def admin_edit_words(message: Message, state: FSMContext):
 @admin_router.message(StateFilter(AdminFSM.deleting_exercise_words))  # DELETE
 async def admin_deleting_words(message: Message, state: FSMContext):
     data = await state.get_data()
-    subsection, section = data.get('admin_subsection'), data.get('admin_section')
-    exercise_name = f'\"{section} - {subsection}\"'
+    subsection, section = str(data.get('admin_subsection')), str(data.get('admin_section'))
+    exercise_name = f'«{section} - {subsection}»'
     indexes = []
     try:
         indexes = [int(num) for num in message.text.split(',')]
@@ -642,7 +651,7 @@ async def admin_deleting_words(message: Message, state: FSMContext):
     if len(indexes) == 1:
         index = indexes[0]
         await message.answer(
-            f"""✅{'Идиома' if section == 'Idioms' else 'Слово'} № {index}\n<b>Удален{'а' if section == 'Idioms' else 'о'}</b> из раздела \n{exercise_name}""",
+            f"""✅Слово № {index}\n<b>Удалено</b> из раздела \n{exercise_name}""",
             reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU, AdminMenuButtons.EXIT))
         await words_manager.delete_new_words_exercise(section=section, subsection=subsection, index=index)
     elif len(indexes) > 1:
