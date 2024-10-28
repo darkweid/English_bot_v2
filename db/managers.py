@@ -617,8 +617,8 @@ class UserManager(DatabaseManager):
             result = await session.execute(select(User))
             users = result.scalars().all()  # Извлекаем все строки как объекты User
 
-            # Создаем список словарей с информацией о каждом пользователе
-            user_info = [
+            # Создаем кортеж словарей с информацией о каждом пользователе
+            user_info = tuple(
                 {
                     'id': user.id,
                     'user_id': user.user_id,
@@ -630,7 +630,7 @@ class UserManager(DatabaseManager):
                     'time_zone': user.time_zone
                 }
                 for user in users
-            ]
+            )
 
             return user_info
 
