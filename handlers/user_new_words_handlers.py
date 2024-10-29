@@ -199,14 +199,17 @@ async def add_new_words_confirm(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
     section, subsection, user_id = user_data.get('section'), user_data.get('subsection'), callback.from_user.id
     user_answer = callback.data
+
     if user_answer == 'add_words':
         await user_words_manager.add_words_to_learning(section=section, subsection=subsection, user_id=user_id)
         await callback.message.edit_text(
             'Добавлено',
             reply_markup=await keyboard_builder(1,
                                                 back_to_main_menu_new_words=BasicButtons.MAIN_MENU_NEW_WORDS))
-        await send_message_to_admin(text=f"""Пользователь @{callback.from_user.username} добавил
-тему «{section} – {subsection}» в изучение""")
+        username = callback.from_user.username or callback.from_user.full_name
+        await send_message_to_admin(text=f"""Пользователь @{username} добавил себе
+набор слов «{section} – {subsection}»""")
+
     elif user_answer == 'do_not_add_words':
         await callback.message.edit_text(
             'Слова не добавлены',

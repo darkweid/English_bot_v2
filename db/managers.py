@@ -1,8 +1,8 @@
 import logging
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlalchemy.future import select
-from sqlalchemy import func, update, delete, not_, desc, distinct
+# from sqlalchemy.future import select
+from sqlalchemy import select, func, update, delete, not_, desc, distinct
 from sqlalchemy.orm import joinedload
 
 from db.models import (TestingExercise, NewWords, UserProgress, User, UserWordsLearning,
@@ -154,6 +154,9 @@ class NewWordsExerciseManager(DatabaseManager):
 
     async def get_new_words_exercises(self, subsection: str):
         async with self.db as session:
+            if isinstance(subsection, int):
+                subsection = str(subsection)
+
             res = await session.execute(
                 select(NewWords).filter_by(subsection=subsection).order_by(NewWords.id))
             exercises = res.scalars().all()
@@ -614,11 +617,11 @@ class UserManager(DatabaseManager):
 
     async def get_all_users(self):
         async with self.db as session:
-            result = await session.execute(select(User))
+            result = await session.execute(select(User).order_by(User.id))
             users = result.scalars().all()  # Извлекаем все строки как объекты User
 
-            # Создаем список словарей с информацией о каждом пользователе
-            user_info = [
+            # Создаем кортеж словарей с информацией о каждом пользователе
+            user_info = tuple(
                 {
                     'id': user.id,
                     'user_id': user.user_id,
@@ -630,7 +633,7 @@ class UserManager(DatabaseManager):
                     'time_zone': user.time_zone
                 }
                 for user in users
-            ]
+            )
 
             return user_info
 

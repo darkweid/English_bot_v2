@@ -9,7 +9,6 @@ ConstructionsSections, PhrasesAndWordsSections, PrepositionsSections, ModalVerbs
 ConditionalsSections]
 
 
-# dict[str, ButtonEnumType]
 async def keyboard_builder(width: int, *args: ButtonEnumType, args_go_first: bool = True,
                            **kwargs: ButtonEnumType) -> InlineKeyboardMarkup:
     kb_builder: InlineKeyboardBuilder = InlineKeyboardBuilder()
@@ -60,7 +59,7 @@ async def keyboard_builder_words_learning(width: int, correct: str, options: lis
     return kb_builder.as_markup()
 
 
-async def keyboard_builder_users(users: list) -> InlineKeyboardMarkup:
+async def keyboard_builder_users(users: tuple) -> InlineKeyboardMarkup:
     kb_builder: InlineKeyboardBuilder = InlineKeyboardBuilder()
     buttons: list[InlineKeyboardButton] = []
     for user in users:
