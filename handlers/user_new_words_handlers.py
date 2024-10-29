@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 from aiogram.exceptions import TelegramBadRequest
 from states import WordsLearningFSM
-from utils import send_message_to_admin, update_state_data, send_long_message
+from utils import send_message_to_admin, update_state_data, send_long_message, get_word_declension, youglish_url_builder
 from lexicon import *
 from db import *
 from keyboards import *
@@ -99,7 +99,7 @@ Cлов в активном изучении: {count_user_exercise}
         await update_state_data(state, words_section=exercise['section'], words_subsection=exercise['subsection'],
                                 words_exercise_id=exercise['exercise_id'], test=word_russian, answer=word_english)
 
-        await callback.message.answer(word_english.capitalize(),
+        await callback.message.answer(text= f'<a href="{youglish_url_builder(word_english)}">{word_english.capitalize()}</a>',
                                       reply_markup=await keyboard_builder_words_learning(1, correct=word_russian,
                                                                                          options=options))
         await state.set_state(WordsLearningFSM.in_process)
