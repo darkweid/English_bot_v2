@@ -5,3 +5,4 @@ from .message_to_users import send_message_to_all_users, send_message_to_user, s
 from .scheduling import scheduler, schedule_reminders, schedule_broadcast, delete_scheduled_broadcasts
 from .bot_init import init_bot_instance, get_bot_instance
 from .send_long_message import send_long_message
+from .new_words_parser import check_line
