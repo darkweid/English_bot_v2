@@ -14,7 +14,7 @@ from keyboards import keyboard_builder, keyboard_builder_users
 from lexicon import (AdminMenuButtons, MessageTexts, BasicButtons, TestingSections, testing_section_mapping,
                      NewWordsSections)
 from utils import (update_state_data, delete_scheduled_broadcasts, schedule_broadcast, send_message_to_user,
-                   send_long_message)
+                   send_long_message, check_line)
 
 config: Config = load_config()
 ADMINS: list = config.tg_bot.admin_ids
@@ -91,7 +91,7 @@ async def admin_exercises(callback: CallbackQuery, state: FSMContext):
     await state.set_state(AdminFSM.default)
 
 
-# Testing
+########################################## Testing ##########################################
 @admin_router.callback_query((F.data == BasicButtons.BACK.value), StateFilter(AdminFSM.select_subsection_testing))
 @admin_router.callback_query((F.data == 'tests_admin'))
 async def admin_start_testing(callback: CallbackQuery, state: FSMContext):  # выбор раздела тестов
@@ -276,7 +276,7 @@ async def admin_deleting_sentence_testing(message: Message, state: FSMContext):
             await testing_manager.delete_testing_exercise(section=section, subsection=subsection, index=index)
 
 
-# Users
+########################################## Users ##########################################
 
 @admin_router.callback_query(F.data == AdminMenuButtons.USERS.value)
 async def admin_users(callback: CallbackQuery, state: FSMContext):
@@ -313,6 +313,25 @@ async def admin_see_user_info_close_message(callback: CallbackQuery):
         logging.error(f"Failed to delete message: {e}")
 
 
+@admin_router.callback_query(F.data == AdminMenuButtons.DEL_USER.value)
+async def admin_delete_user(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.edit_text("Удалить пользователя?",
+                                     reply_markup=await keyboard_builder(1, delete_user=AdminMenuButtons.YES,
+                                                                         dont_delete_user=AdminMenuButtons.NO))
+
+
+@admin_router.callback_query(F.data == 'delete_user')
+async def admin_delete_user(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    data = await state.get_data()
+    user_id = data.get('admin_user_id_management')
+    await user_manager.delete_user(user_id=user_id)
+    await callback.message.edit_text('Пользователь удалён',
+                                     reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
+                                                                         AdminMenuButtons.CLOSE))
+
+
 @admin_router.callback_query(StateFilter(AdminFSM.see_user_management))
 @admin_router.callback_query(F.data == 'dont_delete_user')
 async def admin_see_user_info(callback: CallbackQuery, state: FSMContext):
@@ -346,19 +365,20 @@ async def admin_add_words_to_user(callback: CallbackQuery, state: FSMContext):
     await state.set_state(AdminFSM.adding_words_to_user)
 
 
+##################### Individual words #####################
 @admin_router.message(StateFilter(AdminFSM.adding_words_to_user))
 async def admin_adding_words_to_user(message: Message, state: FSMContext):
     try:
         user_id = (await state.get_data()).get('admin_user_id_management')
         user_full_name = (await user_manager.get_user(user_id=user_id)).get('full_name')
-        exercises = message.text.split('\n')
-        count_exercises = len(exercises)
+        lines = message.text.split('\n')
+        count_exercises = len(lines)
         if count_exercises > 1:
-            for exercise in exercises:
+            for line in lines:
                 word_declension = await get_word_declension(count_exercises)
-                russian, english = exercise.split('=+=')
-                await user_words_learning_manager.admin_add_words_to_learning(user_id=user_id, russian=russian,
-                                                                              english=english)
+                words = check_line(line)
+                await user_words_learning_manager.admin_add_words_to_learning(user_id=user_id, russian=words.russian,
+                                                                              english=words.english)
             await message.answer(
                 f"""✅Успешно добавлено {word_declension} 
 пользователю <b><i>{user_full_name}</i></b>, можешь отправить ещё и я добавлю""",
@@ -369,9 +389,9 @@ async def admin_adding_words_to_user(message: Message, state: FSMContext):
 для изучения. Заходи учить 😊""", learning_button=True)
 
         else:
-            russian, english = message.text.split('=+=')
-            await user_words_learning_manager.admin_add_words_to_learning(user_id=user_id, russian=russian,
-                                                                          english=english)
+            words = check_line(message.text)
+            await user_words_learning_manager.admin_add_words_to_learning(user_id=user_id, russian=words.russian,
+                                                                          english=words.english)
 
             await message.answer(
                 f"""✅Слово успешно добавлено пользователю 
@@ -382,9 +402,8 @@ async def admin_adding_words_to_user(message: Message, state: FSMContext):
 для изучения. Заходи учить 😊""", learning_button=True)
 
     except Exception as e:
-        await message.answer('❗️Что-то пошло не так, попробуй еще раз\n\nПроверь формат текста',
+        await message.answer(text='❗️' + str(e),
                              reply_markup=await keyboard_builder(1, AdminMenuButtons.EXIT))
-        await message.answer(str(e))
 
 
 @admin_router.callback_query(F.data == AdminMenuButtons.SEE_INDIVIDUAL_WORDS.value,
@@ -431,26 +450,7 @@ async def get_word_declension(count: int) -> str:
         return f"{count} слов"
 
 
-@admin_router.callback_query(F.data == AdminMenuButtons.DEL_USER.value)
-async def admin_delete_user(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
-    await callback.message.edit_text("Удалить пользователя?",
-                                     reply_markup=await keyboard_builder(1, delete_user=AdminMenuButtons.YES,
-                                                                         dont_delete_user=AdminMenuButtons.NO))
-
-
-@admin_router.callback_query(F.data == 'delete_user')
-async def admin_delete_user(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
-    data = await state.get_data()
-    user_id = data.get('admin_user_id_management')
-    await user_manager.delete_user(user_id=user_id)
-    await callback.message.edit_text('Пользователь удалён',
-                                     reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
-                                                                         AdminMenuButtons.CLOSE))
-
-
-# New words
+##################### New words #####################
 
 @admin_router.callback_query(F.data == 'new_words_admin')
 @admin_router.callback_query(F.data == 'back_to_sections_new_words_admin')
@@ -573,30 +573,30 @@ async def admin_adding_words(message: Message, state: FSMContext):
     try:
         data = await state.get_data()
         subsection, section = data.get('admin_subsection'), data.get('admin_section')
-        sentences = message.text.split('\n')
-        count_sentences = len(sentences)
+        lines = message.text.split('\n')
+        count_sentences = len(lines)
         if count_sentences > 1:
-            for group_sentences in sentences:
-                russian, english = group_sentences.split('=+=')
-                await words_manager.add_new_words_exercise(section=section, subsection=subsection, russian=russian,
-                                                           english=english)
+            for line in lines:
+                words = check_line(line)
+                await words_manager.add_new_words_exercise(section=section, subsection=subsection,
+                                                           russian=words.russian,
+                                                           english=words.english)
             await message.answer(
                 f'✅Успешно добавлено {count_sentences} упражнений, можешь отправить ещё',
                 reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU, AdminMenuButtons.EXIT))
 
         else:
-            russian, english = message.text.split('=+=')
-            await words_manager.add_new_words_exercise(section=section, subsection=subsection, russian=russian,
-                                                       english=english)
+            words = check_line(message.text)
+            await words_manager.add_new_words_exercise(section=section, subsection=subsection, russian=words.russian,
+                                                       english=words.english)
 
             await message.answer('✅Упражнение успешно добавлено, можешь отправить ещё и я добавлю',
                                  reply_markup=await keyboard_builder(1, AdminMenuButtons.MAIN_MENU,
                                                                      AdminMenuButtons.EXIT))
 
     except Exception as e:
-        await message.answer('❗️Что-то пошло не так, попробуй еще раз\n\nПроверь формат текста',
+        await message.answer(text='❗' + str(e),
                              reply_markup=await keyboard_builder(1, AdminMenuButtons.EXIT))
-        await message.answer(str(e))
 
 
 @admin_router.message(StateFilter(AdminFSM.editing_exercise_words))  # EDIT words
@@ -661,7 +661,7 @@ async def admin_deleting_words(message: Message, state: FSMContext):
             await words_manager.delete_new_words_exercise(section=section, subsection=subsection, index=index)
 
 
-# Activity
+##################### Activity #####################
 @admin_router.callback_query(F.data == AdminMenuButtons.SEE_ACTIVITY_DAY.value)
 @admin_router.callback_query(F.data == AdminMenuButtons.SEE_ACTIVITY_WEEK.value)
 @admin_router.callback_query(F.data == AdminMenuButtons.SEE_ACTIVITY_MONTH.value)
@@ -687,7 +687,7 @@ async def admin_activity(callback: CallbackQuery):
                                   reply_markup=await keyboard_builder(1, close_message_admin=AdminMenuButtons.CLOSE))
 
 
-# Broadcast
+##################### Broadcast #####################
 @admin_router.callback_query((F.data == AdminMenuButtons.BROADCAST.value))
 async def start_broadcast(callback: CallbackQuery):
     await callback.message.edit_text(text=AdminMenuButtons.BROADCAST.value,
