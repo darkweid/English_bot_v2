@@ -410,7 +410,7 @@ async def admin_see_individual_words(callback: CallbackQuery, state: FSMContext)
     if result:
         await callback.answer()
         await send_long_message(callback,
-                                f'Вот все слова пользователя:\n{result}',
+                                f'Вот все индивидуальные слова пользователя:\n{result}',
                                 reply_markup=await keyboard_builder(1,
                                                                     admin_close_without_state_changes=AdminMenuButtons.CLOSE))
     else:
