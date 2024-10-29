@@ -6,3 +6,4 @@ from .scheduling import scheduler, schedule_reminders, schedule_broadcast, delet
 from .bot_init import init_bot_instance, get_bot_instance
 from .send_long_message import send_long_message
 from .new_words_parser import check_line
+from .text_helpers import get_word_declension
