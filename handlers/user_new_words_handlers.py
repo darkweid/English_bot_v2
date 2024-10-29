@@ -181,7 +181,7 @@ async def add_new_words_selecting_subsection(callback: CallbackQuery, state: FSM
     section = user_data.get('section')
     subsection = callback.data
     quantity = await words_manager.get_count_new_words_exercises_in_subsection(section=section, subsection=subsection)
-    word_declension = await get_word_declension(quantity)
+    word_declension = get_word_declension(count=quantity, declension='слово')
     await callback.message.edit_text(f"""«{subsection}»\n
 В теме {word_declension}
 Добавить в изучаемые?""",
@@ -219,7 +219,7 @@ async def add_new_words_confirm(callback: CallbackQuery, state: FSMContext):
 
 
 @user_new_words_router.callback_query(F.data == 'progress_new_words')
-async def stats_new_words(callback: CallbackQuery, state: FSMContext):
+async def stats_new_words(callback: CallbackQuery):
     await callback.answer()
     user_id = callback.from_user.id
     stats = await user_words_manager.get_user_stats(user_id=user_id)
@@ -249,12 +249,3 @@ async def stats_new_words(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text(stats_text,
                                          reply_markup=await keyboard_builder(1,
                                                                              back_to_main_menu_new_words=BasicButtons.BACK))
-
-
-async def get_word_declension(count: int) -> str:
-    if count % 10 == 1 and count % 100 != 11:
-        return f"{count} слово"
-    elif 2 <= count % 10 <= 4 and not (12 <= count % 100 <= 14):
-        return f"{count} слова"
-    else:
-        return f"{count} слов"
