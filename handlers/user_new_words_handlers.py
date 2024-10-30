@@ -8,10 +8,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 from aiogram.exceptions import TelegramBadRequest
 from states import WordsLearningFSM
-from utils import send_message_to_admin, update_state_data, send_long_message
+from utils import (send_message_to_admin, update_state_data, send_long_message, get_word_declension,
+                   word_with_youglish_link)
 from lexicon import *
 from db import *
-from keyboards import *
+from keyboards import keyboard_builder, keyboard_builder_words_learning
 
 user_new_words_router: Router = Router()
 user_manager: UserManager = UserManager()
@@ -21,25 +22,38 @@ daily_stats_manager = DailyStatisticsManager()
 
 
 @user_new_words_router.callback_query(F.data == MainMenuButtons.NEW_WORDS.value)
-async def start_new_words(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
-
-    await callback.message.edit_text('Выбирай:',
-                                     reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
-                                                                         learn_new_words=BasicButtons.LEARN_ADDED_WORDS,
-                                                                         add_new_words=BasicButtons.ADD_WORDS,
-                                                                         progress_new_words=BasicButtons.NEW_WORDS_PROGRESS))
-    await state.set_state(WordsLearningFSM.default)
-
-
 @user_new_words_router.callback_query(F.data == 'back_to_main_menu_new_words')
+@user_new_words_router.callback_query(F.data == 'turn_off_hard_mode_words')
+@user_new_words_router.callback_query(F.data == 'turn_on_hard_mode_words')
 async def start_new_words(callback: CallbackQuery, state: FSMContext):
+    if callback.data == 'turn_off_hard_mode_words':
+        await callback.answer('❌Сложный режим изучения слов выключен', show_alert=True)
+        await update_state_data(state, hard_mode_words=False)
+    elif callback.data == 'turn_on_hard_mode_words':
+        await callback.answer('✅Сложный режим изучения слов включен', show_alert=True)
+        await update_state_data(state, hard_mode_words=True)
+
     await callback.answer()
+    user_data = await state.get_data()
+    hard_mode = user_data.get('hard_mode_words')
+
+    if hard_mode:
+        keyboard = await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
+                                          learn_new_words=BasicButtons.LEARN_ADDED_WORDS,
+                                          turn_off_hard_mode_words=BasicButtons.TURN_OFF_HARD_MODE,
+                                          # Turn OFF hard mode button
+                                          add_new_words=BasicButtons.ADD_WORDS,
+                                          progress_new_words=BasicButtons.NEW_WORDS_PROGRESS)
+    else:
+        keyboard = await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
+                                          learn_new_words=BasicButtons.LEARN_ADDED_WORDS,
+                                          turn_on_hard_mode_words=BasicButtons.TURN_ON_HARD_MODE,
+                                          # Turn ON hard mode button
+                                          add_new_words=BasicButtons.ADD_WORDS,
+                                          progress_new_words=BasicButtons.NEW_WORDS_PROGRESS)
+
     await callback.message.edit_text('Выбирай:',
-                                     reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU, args_go_first=False,
-                                                                         learn_new_words=BasicButtons.LEARN_ADDED_WORDS,
-                                                                         add_new_words=BasicButtons.ADD_WORDS,
-                                                                         progress_new_words=BasicButtons.NEW_WORDS_PROGRESS))
+                                     reply_markup=keyboard)
     await state.set_state(WordsLearningFSM.default)
 
 
@@ -69,40 +83,94 @@ async def rules_new_words(callback: CallbackQuery, state: FSMContext):
         logging.error(f"Failed to delete message: {e}")
 
 
+async def send_no_words_for_today_message(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    count_active_exercises = await user_words_manager.get_count_active_learning_exercises(user_id=user_id)
+    learned_words = await user_words_manager.get_count_learned_exercises(user_id=user_id)
+    message_text = f"{random.choice(list_right_answers)}🔥\n" \
+                   f"{MessageTexts.NO_WORDS_TO_LEARN_TODAY.value}\n" \
+                   f"Cлов в активном изучении: {count_active_exercises}\n" \
+                   f"Изучено всего: {learned_words}"
+    await callback.message.answer(message_text, reply_markup=await keyboard_builder(1,
+                                                                                    BasicButtons.MAIN_MENU,
+                                                                                    BasicButtons.CLOSE))
+
+
+async def send_hello_message_new_words(callback: CallbackQuery, user_id: int):
+    count_active_exercises = await user_words_manager.get_count_active_learning_exercises(user_id=user_id)
+    count_exercises_today = await user_words_manager.get_count_all_exercises_for_today_by_user(user_id=user_id)
+    learned_words = await user_words_manager.get_count_learned_exercises(user_id=user_id)
+    message_text = f"{MessageTexts.NEW_WORDS_HELLO.value}\n" \
+                   f"Cлов в активном изучении: {count_active_exercises}\n" \
+                   f"Для изучения сегодня: {count_exercises_today}\n" \
+                   f"Изучено всего: {learned_words}"
+    keyboard = await keyboard_builder(1, rules_new_words=BasicButtons.RULES, close_rules_new_words=BasicButtons.CLOSE)
+    await callback.message.edit_text(message_text, reply_markup=keyboard)
+
+
 @user_new_words_router.callback_query(F.data == 'learn_new_words')
-async def learn_new_words(callback: CallbackQuery, state: FSMContext, hello_message: bool = True):
+async def learn_new_words(callback: CallbackQuery, state: FSMContext,
+                          hello_message: bool = True, from_hard_mode: bool = False):
     await callback.answer()
     user_id = callback.from_user.id
-    exercise = await user_words_manager.get_random_word_exercise(user_id=user_id)
-    count_user_exercise = await user_words_manager.get_count_active_learning_exercises(user_id=user_id)
-    count_user_exercises_for_today = await user_words_manager.get_count_all_exercises_for_today_by_user(user_id=user_id)
-    learned_words = await user_words_manager.get_count_learned_exercises(user_id=user_id)
+    count_user_exercises_for_today = await user_words_manager.get_count_all_exercises_for_today_by_user(
+        user_id=user_id)
 
-    if not exercise:
-        await callback.message.answer(f"""{random.choice(list_right_answers)}🔥
-{MessageTexts.NO_WORDS_TO_LEARN_TODAY.value}
-Cлов/идиом в активном изучении: {count_user_exercise}
-Изучено всего: {learned_words}""",
-                                      reply_markup=await keyboard_builder(1, BasicButtons.MAIN_MENU,
-                                                                          BasicButtons.CLOSE))
+    # No words for learning today
+    if count_user_exercises_for_today == 0:
+        await send_no_words_for_today_message(callback)
+
+    # The user has words for learning today
     else:
         if hello_message:
-            await callback.message.edit_text(f"""{MessageTexts.NEW_WORDS_HELLO.value}
-Cлов в активном изучении: {count_user_exercise}
-Для изучения сегодня: {count_user_exercises_for_today}
-Изучено всего: {learned_words}""",
-                                             reply_markup=await keyboard_builder(1, rules_new_words=BasicButtons.RULES,
-                                                                                 close_rules_new_words=BasicButtons.CLOSE))
+            await send_hello_message_new_words(callback, user_id)
 
-        word_russian, word_english, word_id, options = exercise['russian'], exercise['english'], exercise[
-            'exercise_id'], exercise['options']
-        await update_state_data(state, words_section=exercise['section'], words_subsection=exercise['subsection'],
-                                words_exercise_id=exercise['exercise_id'], test=word_russian, answer=word_english)
+        # The user has already pressed button "I know this word" -> User has word to answer
+        # -> get word data from state data warehouse
+        if from_hard_mode:
+            user_data = await state.get_data()
+            word_russian, word_english, word_id, options = user_data.get('word_russian'), user_data.get(
+                'word_english'), user_data.get('exercise_id'), user_data.get('options')
 
-        await callback.message.answer(word_english.capitalize(),
-                                      reply_markup=await keyboard_builder_words_learning(1, correct=word_russian,
-                                                                                         options=options))
+        # The user doesn't have word to answer -> get random word data
+        else:
+            exercise = await user_words_manager.get_random_word_exercise(user_id=user_id)
+            word_russian, word_english, word_id, options = exercise['russian'], exercise['english'], exercise[
+                'exercise_id'], exercise['options']
+            await update_state_data(state, words_section=exercise['section'], words_subsection=exercise['subsection'],
+                                    words_exercise_id=exercise['exercise_id'], word_russian=word_russian,
+                                    word_english=word_english,
+                                    options=options)
+        hard_mode_user = (await state.get_data()).get('hard_mode_words')
+
+        # The user received a new word, them must decide whether them knows it or not
+        if hard_mode_user and not from_hard_mode:
+            await callback.message.answer(
+                text=f'{word_with_youglish_link(word_english)}',
+                reply_markup=await keyboard_builder(1, i_know_word=BasicButtons.I_KNOW,
+                                                    i_dont_know_word=BasicButtons.I_DONT_KNOW))
+
+        # The user came from hard_mode, where them pressed "I know the word" button
+        elif from_hard_mode:
+            await callback.message.edit_text(
+                text=f'{word_with_youglish_link(word_english)}',
+                reply_markup=await keyboard_builder_words_learning(1, correct=word_russian,
+                                                                   options=options))
+
+        # The user came from default mode
+        else:
+            await callback.message.answer(
+                text=f'{word_with_youglish_link(word_english)}',
+                reply_markup=await keyboard_builder_words_learning(1, correct=word_russian,
+                                                                   options=options))
+
         await state.set_state(WordsLearningFSM.in_process)
+
+
+@user_new_words_router.callback_query(F.data == 'i_know_word',
+                                      StateFilter(WordsLearningFSM.in_process))
+async def i_know_word_learning_words(callback: CallbackQuery, state: FSMContext):
+    await learn_new_words(callback, state, hello_message=False, from_hard_mode=True)
 
 
 @user_new_words_router.callback_query(F.data == 'correct',
@@ -113,8 +181,8 @@ async def correct_answer_learning_words(callback: CallbackQuery, state: FSMConte
     await asyncio.sleep(0.7)
     await callback.message.delete()
     user_id = callback.from_user.id
-    data = await state.get_data()
-    section, subsection, exercise_id = data.get('words_section'), data.get('words_subsection'), data.get(
+    user_data = await state.get_data()
+    section, subsection, exercise_id = user_data.get('words_section'), user_data.get('words_subsection'), user_data.get(
         'words_exercise_id')
     await user_words_manager.set_progress(user_id=user_id, section=section, subsection=subsection,
                                           exercise_id=exercise_id, success=True)
@@ -125,13 +193,15 @@ async def correct_answer_learning_words(callback: CallbackQuery, state: FSMConte
 
 @user_new_words_router.callback_query(F.data == 'not_correct',
                                       StateFilter(WordsLearningFSM.in_process))
+@user_new_words_router.callback_query(F.data == 'i_dont_know_word',
+                                      StateFilter(WordsLearningFSM.in_process))
 async def not_correct_answer_learning_words(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
-    test, answer = user_data.get('test'), user_data.get('answer')
+    word_russian, word_english = user_data.get('word_russian'), user_data.get('word_english')
 
-    await callback.message.edit_text(f'😕\n{test} — {answer}')
+    await callback.message.edit_text(f'😕\n{word_russian} — {word_english}')
     await asyncio.sleep(1)
-    await callback.message.edit_text(f'{test} — {answer}')
+    await callback.message.edit_text(f'{word_russian} — {word_english}')
     await asyncio.sleep(0.2)
     data = await state.get_data()
     user_id = callback.from_user.id
@@ -181,7 +251,7 @@ async def add_new_words_selecting_subsection(callback: CallbackQuery, state: FSM
     section = user_data.get('section')
     subsection = callback.data
     quantity = await words_manager.get_count_new_words_exercises_in_subsection(section=section, subsection=subsection)
-    word_declension = await get_word_declension(quantity)
+    word_declension = get_word_declension(count=quantity, word='слово')
     await callback.message.edit_text(f"""«{subsection}»\n
 В теме {word_declension}
 Добавить в изучаемые?""",
@@ -205,6 +275,7 @@ async def add_new_words_confirm(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text(
             'Добавлено',
             reply_markup=await keyboard_builder(1,
+                                                learn_new_words=BasicButtons.LEARN_ADDED_WORDS,
                                                 back_to_main_menu_new_words=BasicButtons.MAIN_MENU_NEW_WORDS))
         username = callback.from_user.username or callback.from_user.full_name
         await send_message_to_admin(text=f"""Пользователь @{username} добавил себе
@@ -219,7 +290,7 @@ async def add_new_words_confirm(callback: CallbackQuery, state: FSMContext):
 
 
 @user_new_words_router.callback_query(F.data == 'progress_new_words')
-async def stats_new_words(callback: CallbackQuery, state: FSMContext):
+async def stats_new_words(callback: CallbackQuery):
     await callback.answer()
     user_id = callback.from_user.id
     stats = await user_words_manager.get_user_stats(user_id=user_id)
@@ -249,12 +320,3 @@ async def stats_new_words(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text(stats_text,
                                          reply_markup=await keyboard_builder(1,
                                                                              back_to_main_menu_new_words=BasicButtons.BACK))
-
-
-async def get_word_declension(count: int) -> str:
-    if count % 10 == 1 and count % 100 != 11:
-        return f"{count} слово"
-    elif 2 <= count % 10 <= 4 and not (12 <= count % 100 <= 14):
-        return f"{count} слова"
-    else:
-        return f"{count} слов"

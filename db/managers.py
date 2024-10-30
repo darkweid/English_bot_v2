@@ -162,7 +162,7 @@ class NewWordsExerciseManager(DatabaseManager):
             exercises = res.scalars().all()
             result = ''
             for exercise in exercises:
-                result += f'{exercise.id}) {exercise.russian} – {exercise.english}\n\n'
+                result += f'{exercise.id}) {exercise.russian} – {exercise.english}\n'
             return result
 
     async def get_subsection_names(self, section: str):
