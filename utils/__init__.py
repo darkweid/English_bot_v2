@@ -7,4 +7,4 @@ from .bot_init import init_bot_instance, get_bot_instance
 from .send_long_message import send_long_message
 from .new_words_parser import check_line
 from .text_helpers import get_word_declension
-from .url_builders import youglish_url_builder
+from .url_builders import word_with_youglish_link
