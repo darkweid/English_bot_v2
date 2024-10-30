@@ -55,6 +55,10 @@ async def keyboard_builder_words_learning(width: int, correct: str, options: lis
         )
 
     random.shuffle(buttons)
+    buttons.append(InlineKeyboardButton(
+        text=BasicButtons.I_DONT_KNOW,
+        callback_data='i_dont_know_word'
+    ))
     kb_builder.row(*buttons, width=width)
     return kb_builder.as_markup()
 
