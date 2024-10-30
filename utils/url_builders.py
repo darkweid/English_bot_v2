@@ -2,12 +2,27 @@ import re
 
 
 def youglish_url_builder(word: str) -> str:
-    # Убираем слова в скобках
+    """
+    Builds a YouGlish URL for the given word, removing unnecessary terms and special symbols.
+
+    This function cleans the input word by:
+    - Removing text within parentheses
+    - Excluding "somebody", "something", "smb", and "smth"
+    - Replacing '/' with a space
+    - Stripping extra spaces and encoding spaces for URL usage
+
+    Args:
+        word (str): The word to format into a YouGlish URL.
+
+    Returns:
+        str: A properly formatted URL string for YouGlish.
+    """
+    # Remove words in parentheses
     word = re.sub(r'\(.*?\)', '', word)
-    # Убираем "somebody", "something", "smb", "smth"
+    # Remove "somebody", "something", "smb", "smth"
     word = re.sub(r'\b(somebody|something|smb|smth)\b', '', word, flags=re.IGNORECASE)
     word = word.replace('/', ' ')
-    # Убираем лишние пробелы и кодируем пробелы для URL
+    # Remove extra spaces and encode spaces for URL
     word = ' '.join(word.split()).replace(' ', '%20')
 
     return f'https://www.youglish.com/pronounce/{word}/english'
