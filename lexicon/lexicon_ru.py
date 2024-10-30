@@ -137,6 +137,10 @@ class BasicButtons(Enum):
     ADD_WORDS = 'Выбрать набор слов'
     NEW_WORDS_PROGRESS = 'Посмотреть прогресс'
     MORE_ABOUT_SPACED_REPETITION = 'Подробнее про интервальное повторение'
+    TURN_ON_HARD_MODE = 'Включить сложный режим'
+    TURN_OFF_HARD_MODE = 'Выключить сложный режим'
+    I_KNOW = 'Знаю'
+    I_DONT_KNOW = 'Не знаю'
 
 
 class TestingSections(Enum):
