@@ -8,9 +8,11 @@
 - **Грамматические тесты:** Регулярные тесты помогают закрепить грамматические знания.
 - **Напоминания:** Пользователи могут устанавливать персонализированные напоминания для занятий.
 - **Поддержка администратора:** Учителя могут управлять процессом обучения через административную панель и получать уведомления о ключевых событиях.
+- **Режим Hard Mode для изучения слов:** Экспериментальный режим, добавленный для более сложного изучения слов, что делает обучение более интенсивным.
 
 ## Основные функции для учеников
 - **Изучение слов с интервальным повторением.**
+- **Youglish ссылки:** Встроенный построитель ссылок для Youglish позволяет пользователям легко просматривать произношение слов в реальном контексте.
 - **Тесты по грамматике.**
 - **Напоминания о занятиях.**
 - **Статистика по изучению слов:** Возможность отслеживать прогресс по каждой теме:
@@ -44,10 +46,10 @@
 
 ## Технологический стек
 Бот построен на современных технологиях:
-- **Python 3**
-- **Aiogram 3.10.0** — асинхронная работа с Telegram API.
+- **Python 3.11 slim**
+- **Aiogram 3.13.1** — асинхронная работа с Telegram API.
 - **Aiosqlite 0.20.0** и **Asyncpg 0.29.0** — работа с базами данных (SQLite и PostgreSQL).
-- **Redis 5.0.7** — хранение состояний и кэш.
+- **Redis 5.1.1** — хранение состояний и кэш.
 - **APScheduler 3.10.4** — планирование задач.
 - **Environs 11.0.0** — управление конфиденциальной информацией.
 
@@ -63,9 +65,11 @@ This Telegram bot is designed for Russian-speaking users who want to improve the
 - **Grammar tests:** Regular tests help reinforce grammar knowledge.
 - **Reminders:** Users can set personalized reminders to study.
 - **Administrator support:** Teachers can manage the learning process through an admin panel and receive notifications about key events.
+- **Hard Mode for Vocabulary Learning:** An experimental mode for a more challenging word study experience.
 
 ## Key Features for Students
 - **Word learning with spaced repetition.**
+- **Youglish Links:** Built-in link builder to Youglish allows users to view word pronunciation in real-life context.
 - **Grammar tests.**
 - **Study reminders.**
 - **Word learning statistics:** Users can track their progress for each topic:
@@ -74,6 +78,7 @@ This Telegram bot is designed for Russian-speaking users who want to improve the
   - Actively learning.
   - Words learned.
   - % correct answers.
+  
 
 ## Features for Administrator/Teacher/Tutor
 The admin panel provides the following features:
@@ -92,16 +97,13 @@ The admin panel provides the following features:
   - Notifications with statistics when a student completes a grammar exercise.
 
 ## Planned Improvements
-- [ ] Add a **hard mode** for more challenging word learning.
 - [ ] Make the most learned words a priority in the study process.
-- [ ] Add a link to YouGlish, so students can quickly watch and listen to the word's pronunciation and usage.
-- [ ] Add standard sets of materials and topics to be available when cloning the bot.
 
 ## Tech Stack
 This bot is built using modern technologies:
-- **Python 3**
-- **Aiogram 3.10.0** — asynchronous Telegram API.
+- **Python 3.11 slim**
+- **Aiogram 3.13.1** — asynchronous Telegram API.
 - **Aiosqlite 0.20.0** and **Asyncpg 0.29.0** — asynchronous databases (SQLite and PostgreSQL).
-- **Redis 5.0.7** — state storage and caching.
+- **Redis 5.1.1** — state storage and caching.
 - **APScheduler 3.10.4** — scheduling tasks like sending notifications.
 - **Environs 11.0.0** — secure environment variable management.
