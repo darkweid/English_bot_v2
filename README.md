@@ -1,4 +1,5 @@
-# Telegram Bot для изучения английского языка
+
+# [Telegram Bot](https://t.me/english_prus_bot) для изучения английского языка      
 
 ## Описание
 Этот Telegram бот создан для русскоговорящих пользователей, желающих улучшить свои знания английского языка. Бот включает мощные инструменты для учеников и администратора (учителя), что делает процесс обучения эффективным и организованным.
@@ -56,7 +57,7 @@
 ---
 
   # Telegram Bot for Learning English
-
+[Try](https://t.me/english_prus_bot)
 ## Description
 This Telegram bot is designed for Russian-speaking users who want to improve their English language skills. The bot provides powerful tools for both students and administrators (teachers), making the learning process effective and organized.
 
