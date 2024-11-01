@@ -639,7 +639,7 @@ class UserManager(DatabaseManager):
 
     async def get_user(self, user_id: int):
         async with self.db as session:
-            result = await session.execute(select(User).where(user_id == user_id))
+            result = await session.execute(select(User).where(User.user_id == user_id))
             user = result.scalars().first()
             user_info = {
                 'id': user.id,
