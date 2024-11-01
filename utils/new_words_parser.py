@@ -2,6 +2,7 @@ import re
 from collections import namedtuple
 
 WordPair = namedtuple('WordPair', ['russian', 'english'])
+NON_ALPHABETIC_ALLOWED = r'0-9,()\'«»‘’:–\[\]\-\s'
 
 
 def check_line(line: str) -> WordPair:
@@ -34,8 +35,8 @@ def check_line(line: str) -> WordPair:
 
 
 def is_russian(text: str) -> bool:
-    return bool(re.fullmatch(r'[а-яА-ЯёЁ0-9,():–\[\]\-\s]+', text))
+    return bool(re.fullmatch(rf'[а-яА-ЯёЁ{NON_ALPHABETIC_ALLOWED}]+', text))
 
 
 def is_english(text: str) -> bool:
-    return bool(re.fullmatch(r'[a-zA-Z0-9,():–\[\]\-\s]+', text))
+    return bool(re.fullmatch(rf'[a-zA-Z{NON_ALPHABETIC_ALLOWED}]+', text))
