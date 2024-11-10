@@ -2,7 +2,7 @@ import re
 from collections import namedtuple
 
 WordPair = namedtuple('WordPair', ['russian', 'english'])
-NON_ALPHABETIC_ALLOWED = r'0-9,()\'«»‘’:–\[\]\-\s'
+NON_ALPHABETIC_ALLOWED = r'0-9,()\'«»‘’:–\[\]\-\s\\\/\.'
 
 
 def check_line(line: str) -> WordPair:
