@@ -47,6 +47,7 @@ async def main():
     finally:
         logger.info('Бот был остановлен.')
         await send_message_to_admin(text='🟥 Бот остановлен 🟥')
+        await bot.session.close()
 
 
 async def on_startup():
